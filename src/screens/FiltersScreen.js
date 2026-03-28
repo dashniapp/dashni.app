@@ -13,8 +13,7 @@ export const FILTER_KEY = 'dashni_filters';
 export const DEFAULT_FILTERS = {
   ageMin: 18,
   ageMax: 50,
-  showVideosOnly: false,
-  interestedIn: 'Everyone',
+  diaspora: false,
 };
 
 export async function getFilters() {
@@ -29,22 +28,20 @@ export async function getFilters() {
 export default function FiltersScreen({ navigation }) {
   const [ageMin, setAgeMin] = useState(18);
   const [ageMax, setAgeMax] = useState(50);
-  const [showVideosOnly, setShowVideosOnly] = useState(false);
-  const [interestedIn, setInterestedIn] = useState('Everyone');
+  const [diaspora, setDiaspora] = useState(false);
 
   useEffect(() => {
     getFilters().then(f => {
       setAgeMin(f.ageMin);
       setAgeMax(f.ageMax);
-      setShowVideosOnly(f.showVideosOnly);
-      setInterestedIn(f.interestedIn);
+      setDiaspora(f.diaspora ?? false);
     });
   }, []);
 
   const applyFilters = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await AsyncStorage.setItem(FILTER_KEY, JSON.stringify({
-      ageMin, ageMax, showVideosOnly, interestedIn,
+      ageMin, ageMax, diaspora,
     }));
     navigation.navigate('App', {
       screen: 'Discover',
@@ -54,8 +51,7 @@ export default function FiltersScreen({ navigation }) {
 
   const reset = async () => {
     Haptics.selectionAsync();
-    setAgeMin(18); setAgeMax(50);
-    setShowVideosOnly(false); setInterestedIn('Everyone');
+    setAgeMin(18); setAgeMax(50); setDiaspora(false);
     await AsyncStorage.setItem(FILTER_KEY, JSON.stringify(DEFAULT_FILTERS));
   };
 
@@ -101,31 +97,17 @@ export default function FiltersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Show me */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Show me</Text>
-          <View style={styles.row}>
-            {['Women', 'Men', 'Everyone'].map(opt => (
-              <TouchableOpacity key={opt}
-                style={[styles.chip, { flex: 1 }, interestedIn === opt && styles.chipOn]}
-                onPress={() => { setInterestedIn(opt); Haptics.selectionAsync(); }}>
-                <Text style={[styles.chipText, interestedIn === opt && styles.chipTextOn]}>{opt}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Videos only */}
+        {/* Diaspora */}
         <View style={styles.card}>
           <View style={styles.toggleRow}>
-            <View>
-              <Text style={styles.cardTitle}>Videos only</Text>
-              <Text style={styles.cardSub}>Only show profiles with a video</Text>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.cardTitle}>Diaspora mode ✈️</Text>
+              <Text style={styles.cardSub}>Show Albanians worldwide, not just near you</Text>
             </View>
             <TouchableOpacity
-              style={[styles.toggle, showVideosOnly && styles.toggleOn]}
-              onPress={() => { setShowVideosOnly(!showVideosOnly); Haptics.selectionAsync(); }}>
-              <View style={[styles.thumb, showVideosOnly && styles.thumbOn]} />
+              style={[styles.toggle, diaspora && styles.toggleOn]}
+              onPress={() => { setDiaspora(!diaspora); Haptics.selectionAsync(); }}>
+              <View style={[styles.thumb, diaspora && styles.thumbOn]} />
             </TouchableOpacity>
           </View>
         </View>

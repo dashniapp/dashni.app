@@ -463,14 +463,12 @@ export default function DiscoverScreen({ navigation, route }) {
         .select('id,name,age,gender,location,bio,interests,has_video,verification_status,hometown,country,diaspora_mode')
         .neq('id', user.id);
 
-      const genderFilter = filters.interestedIn !== 'Everyone'
-        ? filters.interestedIn
-        : me?.looking_for_gender;
+      const genderFilter = me?.looking_for_gender;
       if (genderFilter === 'Men'   || genderFilter === 'Man')   q = q.eq('gender', 'Man');
       if (genderFilter === 'Women' || genderFilter === 'Woman') q = q.eq('gender', 'Woman');
       if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
-      if (filters.showVideosOnly) q = q.eq('has_video', true);
+      if (filters.diaspora) q = q.eq('diaspora_mode', true);
       if (blockedIds.length > 0)
         q = q.not('id', 'in', `(${blockedIds.join(',')})`);
 
