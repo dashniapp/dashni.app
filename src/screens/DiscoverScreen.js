@@ -64,7 +64,7 @@ function InlineVideo({ uri, isScreenFocused }) {
 
 // ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
-  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onSuper,
+  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onSuper, onReport,
 }) {
   const likeScale  = useRef(new Animated.Value(0)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
@@ -263,6 +263,20 @@ const ProfileCard = memo(function ProfileCard({
             <AntDesign name="star" size={20} color="#ffd166" />
           </View>
           <Text style={styles.sideBtnLabel}>Super</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.sideBtn}
+          onPress={() => {
+            Haptics.selectionAsync();
+            onReport();
+          }}
+          activeOpacity={0.75}
+        >
+          <View style={styles.sideBtnCircle}>
+            <Feather name="more-horizontal" size={20} color="#fff" />
+          </View>
+          <Text style={styles.sideBtnLabel}>More</Text>
         </TouchableOpacity>
       </View>
 
@@ -466,6 +480,7 @@ export default function DiscoverScreen({ navigation, route }) {
           flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
       }}
       onSuper={() => handleLike(item, index, true)}
+      onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
   ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused]);
 
@@ -489,6 +504,12 @@ export default function DiscoverScreen({ navigation, route }) {
               <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
               <Text style={styles.logo}>Dashni</Text>
             </View>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('Filters')}
+            >
+              <Feather name="sliders" size={16} color={colors.textPrimary} />
+            </TouchableOpacity>
           </View>
         </SafeAreaView>
         <View style={styles.emptyWrap}>

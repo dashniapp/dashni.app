@@ -169,6 +169,12 @@ export default function ViewProfileScreen({ route, navigation }) {
                 <Text style={styles.verifiedText}>Verified</Text>
               </View>
             )}
+            <TouchableOpacity
+              style={styles.backCircle}
+              onPress={() => { Haptics.selectionAsync(); navigation.navigate('BlockReport', { profile }); }}
+            >
+              <Feather name="more-vertical" size={20} color="#fff" />
+            </TouchableOpacity>
           </SafeAreaView>
 
           <View style={styles.heroBottom}>
@@ -309,12 +315,6 @@ export default function ViewProfileScreen({ route, navigation }) {
               </View>
             </View>
           )}
-
-          {/* ── Report ── */}
-          <TouchableOpacity style={styles.reportBtn} onPress={() => { Haptics.selectionAsync(); navigation.navigate('BlockReport', { profile }); }}>
-            <Feather name="flag" size={13} color={colors.textMuted} />
-            <Text style={styles.reportText}>Report or block</Text>
-          </TouchableOpacity>
 
           <View style={{ height: 50 }} />
         </View>
