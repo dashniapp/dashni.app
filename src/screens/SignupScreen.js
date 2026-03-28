@@ -27,22 +27,23 @@ const VISIBLE = 5; // must be odd
 const PAD = ITEM_H * Math.floor(VISIBLE / 2);
 
 function WheelColumn({ data, initialIndex = 0, onChange, formatLabel, width = 90 }) {
-  const scrollRef   = useRef(null);
+  const scrollRef = useRef(null);
   const [activeIdx, setActiveIdx] = useState(initialIndex);
-  const activeRef   = useRef(initialIndex); // sync ref to avoid stale closure
+  const activeRef = useRef(initialIndex);
+  const lockRef   = useRef(false); // prevents double-fire from drag + momentum both firing
 
   useEffect(() => {
     const t = setTimeout(() => {
       scrollRef.current?.scrollTo({ y: initialIndex * ITEM_H, animated: false });
     }, 120);
     return () => clearTimeout(t);
-  }, []); // only on mount
+  }, []);
 
-  const handleScrollEnd = (e) => {
-    const y = e.nativeEvent.contentOffset.y;
+  const settle = (y) => {
+    if (lockRef.current) return;
+    lockRef.current = true;
     const idx = Math.round(y / ITEM_H);
     const clamped = Math.max(0, Math.min(idx, data.length - 1));
-    // Snap to exact row instantly (animated:false won't re-trigger scroll events)
     scrollRef.current?.scrollTo({ y: clamped * ITEM_H, animated: false });
     if (clamped !== activeRef.current) {
       activeRef.current = clamped;
@@ -50,6 +51,8 @@ function WheelColumn({ data, initialIndex = 0, onChange, formatLabel, width = 90
       onChange(clamped);
       Haptics.selectionAsync();
     }
+    // Release lock after enough time for both events to have fired
+    setTimeout(() => { lockRef.current = false; }, 200);
   };
 
   return (
@@ -61,8 +64,8 @@ function WheelColumn({ data, initialIndex = 0, onChange, formatLabel, width = 90
         snapToInterval={ITEM_H}
         decelerationRate="fast"
         contentContainerStyle={{ paddingTop: PAD, paddingBottom: PAD }}
-        onMomentumScrollEnd={handleScrollEnd}
-        onScrollEndDrag={handleScrollEnd}
+        onMomentumScrollEnd={e => settle(e.nativeEvent.contentOffset.y)}
+        onScrollEndDrag={e => settle(e.nativeEvent.contentOffset.y)}
         nestedScrollEnabled
         scrollEventThrottle={16}
       >

@@ -281,8 +281,8 @@ export default function RootNavigator() {
       else setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (ignoreAuthChangeRef.current) return; // signup in progress — skip
-      setSession(session);
+      setSession(session); // always update session so "Start swiping" can fire
+      if (ignoreAuthChangeRef.current) return; // skip profile check during signup uploads
       if (session?.user) {
         setProfileChecking(true);
         checkProfile(session.user.id);
