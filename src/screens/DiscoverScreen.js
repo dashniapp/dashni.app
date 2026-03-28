@@ -716,7 +716,6 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled
-        scrollEnabled={isAdmin}
         decelerationRate={0.85}
         disableIntervalMomentum={true}
         showsVerticalScrollIndicator={false}
