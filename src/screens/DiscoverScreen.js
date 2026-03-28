@@ -572,6 +572,52 @@ export default function DiscoverScreen({ navigation, route }) {
     }
   }, [profiles.length, navigation]);
 
+  const deleteCurrentProfile = useCallback(() => {
+    const target = profilesRef.current[currentIndex];
+    if (!target) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Alert.alert(
+      `Delete ${target.name}?`,
+      'This permanently deletes their account and all data. Cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete permanently', style: 'destructive',
+          onPress: async () => {
+            try {
+              await supabase.storage.from('avatars').remove([`${target.id}/avatar.jpg`]);
+              await supabase.storage.from('videos').remove([`${target.id}/profile.mp4`]);
+              const { error } = await supabase.rpc('admin_delete_user', { target_user_id: target.id });
+              if (error) {
+                await supabase.from('messages').delete().or(`sender_id.eq.${target.id},receiver_id.eq.${target.id}`);
+                await supabase.from('matches').delete().or(`user_1.eq.${target.id},user_2.eq.${target.id}`);
+                await supabase.from('likes').delete().or(`liker_id.eq.${target.id},liked_id.eq.${target.id}`);
+                await supabase.from('blocks').delete().or(`blocker_id.eq.${target.id},blocked_id.eq.${target.id}`);
+                await supabase.from('passes').delete().or(`user_id.eq.${target.id},profile_id.eq.${target.id}`);
+                await supabase.from('profiles').delete().eq('id', target.id);
+              }
+              const next = profilesRef.current.filter(p => p.id !== target.id);
+              profilesRef.current = next;
+              setProfiles(next);
+              setCurrentIndex(i => Math.min(i, Math.max(0, next.length - 1)));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch (e) {
+              Alert.alert('Error', 'Could not delete user.');
+            }
+          },
+        },
+      ]
+    );
+  }, [currentIndex]);
+
+  const rewindOne = useCallback(() => {
+    if (currentIndex > 0) {
+      const prev = currentIndex - 1;
+      flatListRef.current?.scrollToIndex({ index: prev, animated: true });
+      setCurrentIndex(prev);
+    }
+  }, [currentIndex]);
+
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     const idx = viewableItems[0]?.index;
@@ -628,14 +674,10 @@ export default function DiscoverScreen({ navigation, route }) {
             <View style={styles.headerRight}>
               {isAdmin && (
                 <>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => {
-                    seenRef.current.clear();
-                    loadProfiles(true);
-                    flatListRef.current?.scrollToIndex({ index: 0, animated: false });
-                  }}>
+                  <TouchableOpacity style={styles.iconBtn} onPress={rewindOne}>
                     <Feather name="rotate-ccw" size={16} color="#ffd166" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Admin')}>
+                  <TouchableOpacity style={styles.iconBtn} onPress={deleteCurrentProfile}>
                     <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
                       <Feather name="settings" size={16} color={colors.accent} />
                     </Animated.View>
@@ -673,6 +715,7 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled
+        scrollEnabled={false}
         decelerationRate={0.85}
         disableIntervalMomentum={true}
         showsVerticalScrollIndicator={false}
@@ -693,10 +736,10 @@ export default function DiscoverScreen({ navigation, route }) {
           <View style={styles.headerRight}>
             {isAdmin && (
               <>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AdminRewind')}>
-                  <Feather name="rotate-ccw" size={16} color="#ffd166" />
+                <TouchableOpacity style={styles.iconBtn} onPress={rewindOne} disabled={currentIndex === 0}>
+                  <Feather name="rotate-ccw" size={16} color={currentIndex === 0 ? 'rgba(255,209,102,0.3)' : '#ffd166'} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Admin')}>
+                <TouchableOpacity style={styles.iconBtn} onPress={deleteCurrentProfile}>
                   <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
                     <Feather name="settings" size={16} color={colors.accent} />
                   </Animated.View>

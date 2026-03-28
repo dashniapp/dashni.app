@@ -40,8 +40,9 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const { width: W } = Dimensions.get('window');
 
-// Module-level ref so CompleteProfileScreen can call back without nav params
-export const onProfileCompleteRef = { current: null };
+// Module-level refs for signup flow
+export const onProfileCompleteRef  = { current: null };
+export const ignoreAuthChangeRef   = { current: false }; // set true during signup uploads
 
 const TABS = [
   { name: 'Discover', icon: 'play-circle', lib: 'feather' },
@@ -280,6 +281,7 @@ export default function RootNavigator() {
       else setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (ignoreAuthChangeRef.current) return; // signup in progress — skip
       setSession(session);
       if (session?.user) {
         setProfileChecking(true);

@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
+import { ignoreAuthChangeRef, onProfileCompleteRef } from '../navigation/RootNavigator';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -25,34 +26,34 @@ const ITEM_H = 52;
 const VISIBLE = 5; // must be odd
 const PAD = ITEM_H * Math.floor(VISIBLE / 2);
 
-function WheelColumn({ data, selectedIndex, onChange, formatLabel, width = 90 }) {
-  const scrollRef = useRef(null);
-  const lastIndex = useRef(selectedIndex);
+function WheelColumn({ data, initialIndex = 0, onChange, formatLabel, width = 90 }) {
+  const scrollRef   = useRef(null);
+  const [activeIdx, setActiveIdx] = useState(initialIndex);
+  const activeRef   = useRef(initialIndex); // sync ref to avoid stale closure
 
-  // Scroll to initial position once layout is ready
   useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
-    }, 80);
-    return () => clearTimeout(timer);
-  }, []);
+    const t = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: initialIndex * ITEM_H, animated: false });
+    }, 120);
+    return () => clearTimeout(t);
+  }, []); // only on mount
 
-  const handleScrollEnd = useCallback((e) => {
+  const handleScrollEnd = (e) => {
     const y = e.nativeEvent.contentOffset.y;
     const idx = Math.round(y / ITEM_H);
     const clamped = Math.max(0, Math.min(idx, data.length - 1));
-    if (clamped !== lastIndex.current) {
-      lastIndex.current = clamped;
-      Haptics.selectionAsync();
+    // Snap to exact row instantly (animated:false won't re-trigger scroll events)
+    scrollRef.current?.scrollTo({ y: clamped * ITEM_H, animated: false });
+    if (clamped !== activeRef.current) {
+      activeRef.current = clamped;
+      setActiveIdx(clamped);
       onChange(clamped);
+      Haptics.selectionAsync();
     }
-    // Snap to exact position
-    scrollRef.current?.scrollTo({ y: clamped * ITEM_H, animated: true });
-  }, [data.length, onChange]);
+  };
 
   return (
     <View style={{ width, height: ITEM_H * VISIBLE, overflow: 'hidden' }}>
-      {/* Selection highlight */}
       <View pointerEvents="none" style={[wheel.highlight, { top: PAD }]} />
       <ScrollView
         ref={scrollRef}
@@ -63,19 +64,16 @@ function WheelColumn({ data, selectedIndex, onChange, formatLabel, width = 90 })
         onMomentumScrollEnd={handleScrollEnd}
         onScrollEndDrag={handleScrollEnd}
         nestedScrollEnabled
+        scrollEventThrottle={16}
       >
-        {data.map((item, i) => {
-          const isSelected = i === selectedIndex;
-          return (
-            <View key={i} style={wheel.item}>
-              <Text style={[wheel.itemText, isSelected && wheel.itemTextSelected]}>
-                {formatLabel ? formatLabel(item) : String(item)}
-              </Text>
-            </View>
-          );
-        })}
+        {data.map((item, i) => (
+          <View key={i} style={wheel.item}>
+            <Text style={[wheel.itemText, i === activeIdx && wheel.itemTextSelected]}>
+              {formatLabel ? formatLabel(item) : String(item)}
+            </Text>
+          </View>
+        ))}
       </ScrollView>
-      {/* Top/bottom fades */}
       <View pointerEvents="none" style={[wheel.fade, wheel.fadeTop]} />
       <View pointerEvents="none" style={[wheel.fade, wheel.fadeBottom]} />
     </View>
@@ -201,6 +199,7 @@ export default function SignupScreen({ navigation }) {
 
   const createAccount = async () => {
     setLoading(true);
+    ignoreAuthChangeRef.current = true; // block RootNavigator while uploads run
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(), password,
@@ -245,8 +244,10 @@ export default function SignupScreen({ navigation }) {
       if (vRes.ok) await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      ignoreAuthChangeRef.current = false;
       setStep(11);
     } catch (e) {
+      ignoreAuthChangeRef.current = false;
       Alert.alert('Error', e.message);
     }
     setLoading(false);
@@ -305,6 +306,7 @@ export default function SignupScreen({ navigation }) {
           contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          scrollEnabled={step !== 3}
         >
           {/* ── Step 0: Email ── */}
           {step === 0 && (
@@ -363,7 +365,7 @@ export default function SignupScreen({ navigation }) {
                   <Text style={s.wheelLabel}>Day</Text>
                   <WheelColumn
                     data={DAYS}
-                    selectedIndex={dayIdx}
+                    initialIndex={dayIdx}
                     onChange={setDayIdx}
                     formatLabel={d => String(d)}
                     width={70}
@@ -374,7 +376,7 @@ export default function SignupScreen({ navigation }) {
                   <Text style={s.wheelLabel}>Month</Text>
                   <WheelColumn
                     data={MONTHS_FULL}
-                    selectedIndex={monthIdx}
+                    initialIndex={monthIdx}
                     onChange={setMonthIdx}
                     formatLabel={m => m}
                     width={W * 0.38}
@@ -385,7 +387,7 @@ export default function SignupScreen({ navigation }) {
                   <Text style={s.wheelLabel}>Year</Text>
                   <WheelColumn
                     data={YEARS}
-                    selectedIndex={yearIdx}
+                    initialIndex={yearIdx}
                     onChange={setYearIdx}
                     formatLabel={y => String(y)}
                     width={80}
@@ -591,6 +593,13 @@ export default function SignupScreen({ navigation }) {
               <View style={s.doneCircle}><Text style={{ fontSize: 64 }}>🎉</Text></View>
               <Text style={s.doneTitle}>Welcome to Dashni, {name}!</Text>
               <Text style={s.doneSub}>Your profile is live. Start swiping and find your match!</Text>
+              <TouchableOpacity
+                style={s.nextBtn}
+                onPress={() => onProfileCompleteRef.current?.()}
+                activeOpacity={0.85}
+              >
+                <Text style={s.nextBtnText}>Start swiping →</Text>
+              </TouchableOpacity>
             </View>
           )}
 
