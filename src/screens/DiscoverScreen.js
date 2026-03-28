@@ -420,7 +420,10 @@ export default function DiscoverScreen({ navigation, route }) {
   const [isScreenFocused, setIsScreenFocused] = useState(true);
   const [matchData, setMatchData]   = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
-  const flatListRef = useRef(null);
+  const flatListRef   = useRef(null);
+  const profilesRef   = useRef([]);
+  const userIdRef     = useRef(null);
+  const seenRef       = useRef(new Set()); // prevents duplicate inserts this session
 
   useEffect(() => {
     loadProfiles();
@@ -444,6 +447,8 @@ export default function DiscoverScreen({ navigation, route }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
+      userIdRef.current = user.id;
+
       const { data: myPhoto } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
       if (myPhoto?.publicUrl) setMyPhotoUrl(myPhoto.publicUrl + '?t=me');
 
@@ -460,6 +465,10 @@ export default function DiscoverScreen({ navigation, route }) {
         .from('likes').select('liked_id').eq('liker_id', user.id);
       const likedIds = (likedData || []).map(l => l.liked_id);
 
+      const { data: passData } = await supabase
+        .from('passes').select('profile_id').eq('user_id', user.id);
+      const passedIds = (passData || []).map(p => p.profile_id);
+
       const filters = await getFilters();
 
       let q = supabase
@@ -473,7 +482,7 @@ export default function DiscoverScreen({ navigation, route }) {
       if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
       if (filters.diaspora) q = q.eq('diaspora_mode', true);
-      const excludeIds = [...new Set([...blockedIds, ...likedIds])];
+      const excludeIds = [...new Set([...blockedIds, ...likedIds, ...passedIds])];
       if (excludeIds.length > 0)
         q = q.not('id', 'in', `(${excludeIds.join(',')})`);
 
@@ -514,7 +523,9 @@ export default function DiscoverScreen({ navigation, route }) {
           };
         });
 
-        setProfiles(enriched.sort(() => Math.random() - 0.5));
+        const shuffled = enriched.sort(() => Math.random() - 0.5);
+        profilesRef.current = shuffled;
+        setProfiles(shuffled);
         setCurrentIndex(0);
       } else {
         setProfiles([]);
@@ -552,7 +563,16 @@ export default function DiscoverScreen({ navigation, route }) {
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     const idx = viewableItems[0]?.index;
-    if (idx != null) setCurrentIndex(idx);
+    if (idx == null) return;
+    setCurrentIndex(idx);
+    const profile = profilesRef.current[idx];
+    if (profile && userIdRef.current && !seenRef.current.has(profile.id)) {
+      seenRef.current.add(profile.id);
+      supabase.from('passes').upsert(
+        { user_id: userIdRef.current, profile_id: profile.id },
+        { onConflict: 'user_id,profile_id' }
+      ).then(() => {});
+    }
   }, []);
   const getItemLayout = useCallback((_, i) => ({ length: H, offset: H * i, index: i }), []);
 
