@@ -627,14 +627,16 @@ export default function DiscoverScreen({ navigation, route }) {
             </View>
             <View style={styles.headerRight}>
               {isAdmin && (
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => navigation.navigate('Admin')}
-                >
-                  <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
-                    <Feather name="settings" size={16} color={colors.accent} />
-                  </Animated.View>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AdminRewind')}>
+                    <Feather name="rotate-ccw" size={16} color="#ffd166" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Admin')}>
+                    <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+                      <Feather name="settings" size={16} color={colors.accent} />
+                    </Animated.View>
+                  </TouchableOpacity>
+                </>
               )}
               <TouchableOpacity
                 style={styles.iconBtn}
@@ -686,14 +688,16 @@ export default function DiscoverScreen({ navigation, route }) {
           </View>
           <View style={styles.headerRight}>
             {isAdmin && (
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => navigation.navigate('Admin')}
-              >
-                <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
-                  <Feather name="settings" size={16} color={colors.accent} />
-                </Animated.View>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AdminRewind')}>
+                  <Feather name="rotate-ccw" size={16} color="#ffd166" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Admin')}>
+                  <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+                    <Feather name="settings" size={16} color={colors.accent} />
+                  </Animated.View>
+                </TouchableOpacity>
+              </>
             )}
             <TouchableOpacity
               style={styles.iconBtn}
