@@ -534,9 +534,7 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled
-        snapToInterval={H}
-        snapToAlignment="start"
-        decelerationRate="fast"
+        decelerationRate={0.85}
         disableIntervalMomentum={true}
         showsVerticalScrollIndicator={false}
         getItemLayout={getItemLayout}
