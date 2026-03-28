@@ -154,16 +154,14 @@ export default function ChatScreen({ route, navigation }) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.4,
-      base64: true,
     });
-    if (result.canceled || !result.assets[0].base64) return;
+    if (result.canceled || !result.assets?.[0]?.uri) return;
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
-      const fileName = `chats/${user.id}_${Date.now()}.jpg`;
+      const fileName = `${user.id}/chat_${Date.now()}.jpg`;
 
-      // Use FormData for reliable upload
       const formData = new FormData();
       formData.append('file', {
         uri: result.assets[0].uri,
