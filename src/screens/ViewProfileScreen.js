@@ -13,6 +13,11 @@ import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 
+function VideoThumb({ uri }) {
+  const player = useVideoPlayer(uri, () => {}); // no play() = stays on first frame
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
+}
+
 const LOOKING_FOR_LABELS = {
   relationship: '💍 Long-term relationship',
   casual: '☕ Casual dating',
@@ -251,13 +256,18 @@ export default function ViewProfileScreen({ route, navigation }) {
                 {/* Video thumbnail */}
                 {videoUrl && (
                   <TouchableOpacity
-                    style={[styles.photoThumb, { backgroundColor: '#0d0818' }]}
+                    style={styles.photoThumb}
                     onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowVideo(true); }}
                     activeOpacity={0.85}
                   >
-                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                      <Ionicons name="play-circle" size={34} color={colors.accent} />
-                      <Text style={{ color: colors.accent, fontSize: 10, fontWeight: '700' }}>VIDEO</Text>
+                    <VideoThumb uri={videoUrl} />
+                    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', padding: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 8 }}>
+                          <Ionicons name="play" size={10} color="#fff" />
+                          <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>VIDEO</Text>
+                        </View>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 )}

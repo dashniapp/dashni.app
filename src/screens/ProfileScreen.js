@@ -8,10 +8,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
+
+function VideoThumb({ uri }) {
+  const player = useVideoPlayer(uri, () => {}); // paused at first frame
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
+}
 
 export default function ProfileScreen({ navigation }) {
   const [profile, setProfile] = useState(null);
@@ -356,19 +362,23 @@ export default function ProfileScreen({ navigation }) {
                 onPress={() => setShowVideoMenu(true)}
                 activeOpacity={0.85}
               >
-                <LinearGradient colors={['#1a0818', '#0d0818']} style={StyleSheet.absoluteFill} />
-                <View style={styles.videoThumbContent}>
-                  {uploadingVideo ? (
+                {uploadingVideo ? (
+                  <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0d0818', alignItems: 'center', justifyContent: 'center' }]}>
                     <ActivityIndicator color={colors.accent} />
-                  ) : (
-                    <>
-                      <Ionicons name="play-circle" size={32} color={colors.accent} />
-                      <Text style={styles.videoThumbLabel}>Video</Text>
-                    </>
-                  )}
-                </View>
-                <View style={styles.videoThumbDots}>
-                  <Feather name="more-horizontal" size={16} color="#fff" />
+                  </View>
+                ) : (
+                  <VideoThumb uri={videoUrl} />
+                )}
+                <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', padding: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 8 }}>
+                      <Ionicons name="play" size={10} color="#fff" />
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>VIDEO</Text>
+                    </View>
+                  </View>
+                  <View style={styles.videoThumbDots}>
+                    <Feather name="more-horizontal" size={16} color="#fff" />
+                  </View>
                 </View>
               </TouchableOpacity>
             ) : (
