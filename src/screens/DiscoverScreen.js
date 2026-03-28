@@ -628,7 +628,11 @@ export default function DiscoverScreen({ navigation, route }) {
             <View style={styles.headerRight}>
               {isAdmin && (
                 <>
-                  <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('AdminRewind')}>
+                  <TouchableOpacity style={styles.iconBtn} onPress={() => {
+                    seenRef.current.clear();
+                    loadProfiles(true);
+                    flatListRef.current?.scrollToIndex({ index: 0, animated: false });
+                  }}>
                     <Feather name="rotate-ccw" size={16} color="#ffd166" />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Admin')}>

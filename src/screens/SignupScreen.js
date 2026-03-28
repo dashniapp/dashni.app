@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  Image, ActivityIndicator,
+  Image, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -11,43 +11,124 @@ import * as Haptics from 'expo-haptics';
 import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
-const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 60 }, (_, i) => currentYear - 18 - i);
+const { width: W, height: H } = Dimensions.get('window');
 
-const STEPS = ['Account', 'Birthday', 'About you', 'Looking for', 'Your photo', 'Your video', 'Verify', 'Done'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS   = Array.from({ length: 31 }, (_, i) => i + 1);
+const CUR_YEAR = new Date().getFullYear();
+const YEARS  = Array.from({ length: 100 }, (_, i) => CUR_YEAR - 18 - i); // 18 to 118 years ago
 
+const TOTAL_STEPS = 12; // 0..11
+
+// ── Vertical spinning wheel column ───────────────────────────────────────────
+const ITEM_H = 52;
+const VISIBLE = 5; // must be odd
+const PAD = ITEM_H * Math.floor(VISIBLE / 2);
+
+function WheelColumn({ data, selectedIndex, onChange, formatLabel, width = 90 }) {
+  const scrollRef = useRef(null);
+  const lastIndex = useRef(selectedIndex);
+
+  // Scroll to initial position once layout is ready
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: selectedIndex * ITEM_H, animated: false });
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleScrollEnd = useCallback((e) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const idx = Math.round(y / ITEM_H);
+    const clamped = Math.max(0, Math.min(idx, data.length - 1));
+    if (clamped !== lastIndex.current) {
+      lastIndex.current = clamped;
+      Haptics.selectionAsync();
+      onChange(clamped);
+    }
+    // Snap to exact position
+    scrollRef.current?.scrollTo({ y: clamped * ITEM_H, animated: true });
+  }, [data.length, onChange]);
+
+  return (
+    <View style={{ width, height: ITEM_H * VISIBLE, overflow: 'hidden' }}>
+      {/* Selection highlight */}
+      <View pointerEvents="none" style={[wheel.highlight, { top: PAD }]} />
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        snapToInterval={ITEM_H}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingTop: PAD, paddingBottom: PAD }}
+        onMomentumScrollEnd={handleScrollEnd}
+        onScrollEndDrag={handleScrollEnd}
+        nestedScrollEnabled
+      >
+        {data.map((item, i) => {
+          const isSelected = i === selectedIndex;
+          return (
+            <View key={i} style={wheel.item}>
+              <Text style={[wheel.itemText, isSelected && wheel.itemTextSelected]}>
+                {formatLabel ? formatLabel(item) : String(item)}
+              </Text>
+            </View>
+          );
+        })}
+      </ScrollView>
+      {/* Top/bottom fades */}
+      <View pointerEvents="none" style={[wheel.fade, wheel.fadeTop]} />
+      <View pointerEvents="none" style={[wheel.fade, wheel.fadeBottom]} />
+    </View>
+  );
+}
+
+const wheel = StyleSheet.create({
+  highlight: {
+    position: 'absolute', left: 4, right: 4, height: ITEM_H,
+    borderTopWidth: 1, borderBottomWidth: 1,
+    borderColor: 'rgba(255,107,107,0.5)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,107,107,0.07)',
+  },
+  item: { height: ITEM_H, alignItems: 'center', justifyContent: 'center' },
+  itemText: { color: 'rgba(255,255,255,0.3)', fontSize: 17 },
+  itemTextSelected: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  fade: { position: 'absolute', left: 0, right: 0, height: PAD * 0.85, pointerEvents: 'none' },
+  fadeTop: { top: 0, background: 'transparent' },
+  fadeBottom: { bottom: 0 },
+});
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 export default function SignupScreen({ navigation }) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // Step 0 — email
   const [email, setEmail] = useState('');
+  // Step 1 — password
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-
-  const [birthDay, setBirthDay] = useState(null);
-  const [birthMonth, setBirthMonth] = useState(null);
-  const [birthYear, setBirthYear] = useState(null);
-
+  const [showPw, setShowPw] = useState(false);
+  // Step 2 — name
   const [name, setName] = useState('');
+  // Step 3 — birthday (wheel indices)
+  const [dayIdx,   setDayIdx]   = useState(0);
+  const [monthIdx, setMonthIdx] = useState(0);
+  const [yearIdx,  setYearIdx]  = useState(0);
+  // Step 4 — gender
   const [gender, setGender] = useState('');
+  // Step 5 — looking for
+  const [lookingFor, setLookingFor] = useState('');
+  // Step 6 — who to meet
+  const [lookingForGender, setLookingForGender] = useState('');
+  // Step 7 — city
   const [location, setLocation] = useState('');
   const [hometown, setHometown] = useState('');
-  const [country, setCountry] = useState('');
-  const [diasporaMode, setDiasporaMode] = useState(false);
-
-  const [lookingFor, setLookingFor] = useState('');
-  const [lookingForGender, setLookingForGender] = useState('');
+  // Step 8 — interests
   const [hobbies, setHobbies] = useState([]);
-
+  // Step 9 — photo
   const [photoUri, setPhotoUri] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  // Step 10 — video
   const [videoUri, setVideoUri] = useState(null);
-  const [videoUploading, setVideoUploading] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
 
   const ALL_HOBBIES = [
     'Muzikë 🎵', 'Udhëtime ✈️', 'Fitness 💪', 'Gatim 🍳', 'Art 🎨',
@@ -56,50 +137,66 @@ export default function SignupScreen({ navigation }) {
     'Teknologji 💻', 'Muzikë Shqip 🎤', 'Kuzhina Shqipe 🥘', 'Historia 🏛️', 'Mode 👗',
   ];
 
-  const toggleHobby = (h) => {
-    Haptics.selectionAsync();
-    if (hobbies.includes(h)) setHobbies(hobbies.filter(x => x !== h));
-    else if (hobbies.length < 6) setHobbies([...hobbies, h]);
-    else Alert.alert('Max 6', 'Remove one before adding another.');
+  const progress = step / (TOTAL_STEPS - 1);
+
+  const goBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setStep(s => s - 1);
   };
 
-  const progress = (step / (STEPS.length - 1)) * 100;
-
-  const goNext = async () => {
+  const advance = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    if (step === 0) {
-      if (!email.trim()) return Alert.alert('Required', 'Please enter your email.');
-      if (!password.trim() || password.length < 6) return Alert.alert('Required', 'Password must be at least 6 characters.');
-      if (!agreed) return Alert.alert('Required', 'Please agree to the Terms and Privacy Policy.');
-    }
-    if (step === 1) {
-      if (!birthDay || !birthMonth || !birthYear) return Alert.alert('Required', 'Please select your full date of birth.');
-      const age = currentYear - birthYear;
-      if (age < 18) return Alert.alert('Must be 18+', 'You must be at least 18 to use Dashni.');
-    }
-    if (step === 2) {
-      if (!name.trim()) return Alert.alert('Required', 'Please enter your name.');
-      if (!gender) return Alert.alert('Required', 'Please select your gender.');
-      if (!location.trim()) return Alert.alert('Required', 'Please enter your city.');
-    }
-    if (step === 3) {
-      if (!lookingFor) return Alert.alert('Required', 'Please select what you are looking for.');
-      if (!lookingForGender) return Alert.alert('Required', 'Please select who you want to meet.');
-      if (hobbies.length === 0) return Alert.alert('Required', 'Please select at least one interest.');
-    }
-    if (step === 4) {
-      if (!photoUri) return Alert.alert('Required', 'Please add a profile photo.');
-      setStep(5);
-      return;
-    }
-    if (step === 5) {
-      if (!videoUri) return Alert.alert('Video required', 'Please add a video profile — it helps people see the real you and prevents fake accounts.');
-      await createAccount();
-      return;
-    }
-
     setStep(s => s + 1);
+  };
+
+  const validate = () => {
+    switch (step) {
+      case 0:
+        if (!email.trim() || !email.includes('@')) { Alert.alert('Required', 'Enter a valid email.'); return false; }
+        break;
+      case 1:
+        if (password.length < 6) { Alert.alert('Required', 'Password must be at least 6 characters.'); return false; }
+        break;
+      case 2:
+        if (!name.trim()) { Alert.alert('Required', 'Enter your first name.'); return false; }
+        break;
+      case 3: {
+        const age = CUR_YEAR - YEARS[yearIdx];
+        if (age < 18) { Alert.alert('Must be 18+', 'You must be at least 18 to use Dashni.'); return false; }
+        break;
+      }
+      case 4:
+        if (!gender) { Alert.alert('Required', 'Select your gender.'); return false; }
+        break;
+      case 5:
+        if (!lookingFor) { Alert.alert('Required', 'Select what you are looking for.'); return false; }
+        break;
+      case 6:
+        if (!lookingForGender) { Alert.alert('Required', 'Select who you want to meet.'); return false; }
+        break;
+      case 7:
+        if (!location.trim()) { Alert.alert('Required', 'Enter your city.'); return false; }
+        break;
+      case 8:
+        if (hobbies.length === 0) { Alert.alert('Required', 'Pick at least one interest.'); return false; }
+        break;
+      case 9:
+        if (!photoUri) { Alert.alert('Required', 'Add your profile photo.'); return false; }
+        break;
+      case 10:
+        if (!videoUri) { Alert.alert('Required', 'Add your profile video.'); return false; }
+        break;
+    }
+    return true;
+  };
+
+  const handleContinue = async () => {
+    if (!validate()) return;
+    if (step === 10) {
+      await createAccount();
+    } else {
+      advance();
+    }
   };
 
   const createAccount = async () => {
@@ -112,8 +209,8 @@ export default function SignupScreen({ navigation }) {
       const user = authData.user;
       if (!user) throw new Error('Account creation failed');
 
-      const age = currentYear - birthYear;
-      const dob = `${birthYear}-${String(birthMonth + 1).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
+      const age = CUR_YEAR - YEARS[yearIdx];
+      const dob = `${YEARS[yearIdx]}-${String(monthIdx + 1).padStart(2, '0')}-${String(DAYS[dayIdx]).padStart(2, '0')}`;
 
       await supabase.from('profiles').upsert({
         id: user.id,
@@ -121,461 +218,394 @@ export default function SignupScreen({ navigation }) {
         age,
         gender,
         location: location.trim(),
+        hometown: hometown.trim() || null,
         interests: hobbies.map(h => h.split(' ')[0]).join(', '),
         looking_for: lookingFor,
         looking_for_gender: lookingForGender,
         age_confirmed: true,
         age_confirmed_at: new Date().toISOString(),
-        hometown: hometown.trim(),
-        country: country.trim(),
-        diaspora_mode: diasporaMode,
       });
 
-      if (photoUri) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const formData = new FormData();
-        formData.append('file', { uri: photoUri, name: 'avatar.jpg', type: 'image/jpeg' });
-        await fetch(
-          `${SUPABASE_URL}/storage/v1/object/avatars/${user.id}/avatar.jpg`,
-          { method: 'POST', headers: { 'Authorization': `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: formData }
-        );
-      }
+      // Upload photo
+      const { data: { session } } = await supabase.auth.getSession();
+      const photoForm = new FormData();
+      photoForm.append('file', { uri: photoUri, name: 'avatar.jpg', type: 'image/jpeg' });
+      await fetch(
+        `${SUPABASE_URL}/storage/v1/object/avatars/${user.id}/avatar.jpg`,
+        { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: photoForm }
+      );
 
-      // Upload video if provided
-      if (videoUri) {
-        const { data: { session: vidSession } } = await supabase.auth.getSession();
-        const vForm = new FormData();
-        vForm.append('file', { uri: videoUri, name: 'profile.mp4', type: 'video/mp4' });
-        const vRes = await fetch(
-          `${SUPABASE_URL}/storage/v1/object/videos/${user.id}/profile.mp4`,
-          { method: 'POST', headers: { 'Authorization': `Bearer ${vidSession.access_token}`, 'x-upsert': 'true' }, body: vForm }
-        );
-        if (vRes.ok) await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);
-      }
+      // Upload video
+      const videoForm = new FormData();
+      videoForm.append('file', { uri: videoUri, name: 'profile.mp4', type: 'video/mp4' });
+      const vRes = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/videos/${user.id}/profile.mp4`,
+        { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: videoForm }
+      );
+      if (vRes.ok) await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setStep(6);
+      setStep(11);
     } catch (e) {
       Alert.alert('Error', e.message);
     }
     setLoading(false);
   };
 
-  const pickPhoto = async () => {
+  const pickPhoto = async (fromCamera = false) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert('Permission needed', 'Allow photo library access.');
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], allowsEditing: true, aspect: [3, 4], quality: 0.6,
-    });
+    const perm = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (perm.status !== 'granted') return Alert.alert('Permission needed');
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [3, 4], quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [3, 4], quality: 0.7 });
     if (!result.canceled) setPhotoUri(result.assets[0].uri);
   };
 
-  const takePhoto = async () => {
+  const pickVideo = async (fromCamera = false) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') return Alert.alert('Permission needed', 'Allow camera access.');
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true, aspect: [3, 4], quality: 0.6,
-    });
-    if (!result.canceled) setPhotoUri(result.assets[0].uri);
+    const perm = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (perm.status !== 'granted') return Alert.alert('Permission needed');
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 30 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 30 });
+    if (!result.canceled) setVideoUri(result.assets[0].uri);
   };
+
+  // ── Computed birthday age ──
+  const age = CUR_YEAR - YEARS[yearIdx];
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  const isDone = step === 11;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-
-        {/* Progress bar */}
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+      {/* Progress dots */}
+      {!isDone && (
+        <View style={s.dotsBar}>
+          {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => (
+            <View key={i} style={[s.dot, i < step && s.dotDone, i === step && s.dotActive]} />
+          ))}
         </View>
+      )}
 
-        {step > 0 && step < 6 && (
-          <TouchableOpacity style={styles.backBtn} onPress={() => setStep(s => s - 1)}>
-            <Feather name="arrow-left" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-        )}
+      {/* Back button */}
+      {step > 0 && !isDone && (
+        <TouchableOpacity style={s.backBtn} onPress={goBack}>
+          <Feather name="arrow-left" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+      )}
 
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-
-          <View style={styles.logoRow}>
-            <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-            <Text style={styles.appName}>Dashni</Text>
-          </View>
-
-          {/* ── STEP 0: Account ── */}
-          {step === 0 && <>
-            <Text style={styles.title}>Create account</Text>
-            <Text style={styles.sub}>Join Dashni — find your match</Text>
-            <View style={styles.field}>
-              <Text style={styles.label}>Email</Text>
-              <View style={styles.inputWrap}>
-                <Feather name="mail" size={17} color={colors.textMuted} />
-                <TextInput style={styles.input} value={email} onChangeText={setEmail}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Step 0: Email ── */}
+          {step === 0 && (
+            <StepShell title="What's your email?" sub="You'll use this to log in">
+              <View style={s.inputWrap}>
+                <Feather name="mail" size={18} color={colors.textMuted} />
+                <TextInput
+                  style={s.input} value={email} onChangeText={setEmail}
                   placeholder="your@email.com" placeholderTextColor={colors.textMuted}
-                  keyboardType="email-address" autoCapitalize="none" />
+                  keyboardType="email-address" autoCapitalize="none" autoFocus
+                />
               </View>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputWrap}>
-                <Feather name="lock" size={17} color={colors.textMuted} />
-                <TextInput style={[styles.input, { flex: 1 }]} value={password} onChangeText={setPassword}
+              <TouchableOpacity onPress={() => navigation.navigate('Login')} style={{ alignSelf: 'center', marginTop: 8 }}>
+                <Text style={s.link}>Already have an account? Log in</Text>
+              </TouchableOpacity>
+            </StepShell>
+          )}
+
+          {/* ── Step 1: Password ── */}
+          {step === 1 && (
+            <StepShell title="Create a password" sub="At least 6 characters">
+              <View style={s.inputWrap}>
+                <Feather name="lock" size={18} color={colors.textMuted} />
+                <TextInput
+                  style={[s.input, { flex: 1 }]} value={password} onChangeText={setPassword}
                   placeholder="Min. 6 characters" placeholderTextColor={colors.textMuted}
-                  secureTextEntry={!showPassword} autoCapitalize="none" />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Feather name={showPassword ? 'eye-off' : 'eye'} size={17} color={colors.textMuted} />
+                  secureTextEntry={!showPw} autoCapitalize="none" autoFocus
+                />
+                <TouchableOpacity onPress={() => setShowPw(v => !v)}>
+                  <Feather name={showPw ? 'eye-off' : 'eye'} size={18} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
-            </View>
-            <TouchableOpacity style={styles.checkRow} onPress={() => setAgreed(!agreed)}>
-              <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-                {agreed && <Feather name="check" size={12} color="#fff" />}
+            </StepShell>
+          )}
+
+          {/* ── Step 2: Name ── */}
+          {step === 2 && (
+            <StepShell title="What's your first name?" sub="This is how you'll appear to others">
+              <View style={s.inputWrap}>
+                <Feather name="user" size={18} color={colors.textMuted} />
+                <TextInput
+                  style={s.input} value={name} onChangeText={setName}
+                  placeholder="First name" placeholderTextColor={colors.textMuted}
+                  autoCapitalize="words" autoFocus
+                />
               </View>
-              <Text style={styles.checkText}>
-                I agree to the{' '}
-                <Text style={styles.link} onPress={() => navigation.navigate('Legal', { type: 'terms' })}>Terms</Text>
-                {' '}and{' '}
-                <Text style={styles.link} onPress={() => navigation.navigate('Legal', { type: 'privacy' })}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.loginHint}>Already have an account? <Text style={styles.link}>Log in</Text></Text>
-            </TouchableOpacity>
-          </>}
+            </StepShell>
+          )}
 
-          {/* ── STEP 1: Birthday ── */}
-          {step === 1 && <>
-            <Text style={styles.title}>Your birthday</Text>
-            <Text style={styles.sub}>You must be 18 or older</Text>
-
-            {/* Day picker */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Day</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.pickerRow}>
-                  {DAYS.map(d => (
-                    <TouchableOpacity key={d}
-                      style={[styles.pickerItem, birthDay === d && styles.pickerItemOn]}
-                      onPress={() => { setBirthDay(d); Haptics.selectionAsync(); }}>
-                      <Text style={[styles.pickerText, birthDay === d && styles.pickerTextOn]}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
+          {/* ── Step 3: Birthday (wheel) ── */}
+          {step === 3 && (
+            <StepShell title="When's your birthday?" sub="You must be 18 or older">
+              <View style={s.wheelRow}>
+                {/* Day */}
+                <View style={s.wheelCol}>
+                  <Text style={s.wheelLabel}>Day</Text>
+                  <WheelColumn
+                    data={DAYS}
+                    selectedIndex={dayIdx}
+                    onChange={setDayIdx}
+                    formatLabel={d => String(d)}
+                    width={70}
+                  />
                 </View>
-              </ScrollView>
-            </View>
-
-            {/* Month picker */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Month</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.pickerRow}>
-                  {MONTHS.map((m, i) => (
-                    <TouchableOpacity key={m}
-                      style={[styles.pickerItem, styles.pickerItemWide, birthMonth === i && styles.pickerItemOn]}
-                      onPress={() => { setBirthMonth(i); Haptics.selectionAsync(); }}>
-                      <Text style={[styles.pickerText, birthMonth === i && styles.pickerTextOn]}>{m}</Text>
-                    </TouchableOpacity>
-                  ))}
+                {/* Month */}
+                <View style={[s.wheelCol, { flex: 1 }]}>
+                  <Text style={s.wheelLabel}>Month</Text>
+                  <WheelColumn
+                    data={MONTHS_FULL}
+                    selectedIndex={monthIdx}
+                    onChange={setMonthIdx}
+                    formatLabel={m => m}
+                    width={W * 0.38}
+                  />
                 </View>
-              </ScrollView>
-            </View>
-
-            {/* Year picker */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Year</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.pickerRow}>
-                  {YEARS.map(y => (
-                    <TouchableOpacity key={y}
-                      style={[styles.pickerItem, styles.pickerItemWide, birthYear === y && styles.pickerItemOn]}
-                      onPress={() => { setBirthYear(y); Haptics.selectionAsync(); }}>
-                      <Text style={[styles.pickerText, birthYear === y && styles.pickerTextOn]}>{y}</Text>
-                    </TouchableOpacity>
-                  ))}
+                {/* Year */}
+                <View style={s.wheelCol}>
+                  <Text style={s.wheelLabel}>Year</Text>
+                  <WheelColumn
+                    data={YEARS}
+                    selectedIndex={yearIdx}
+                    onChange={setYearIdx}
+                    formatLabel={y => String(y)}
+                    width={80}
+                  />
                 </View>
-              </ScrollView>
-            </View>
-
-            {birthDay && birthMonth !== null && birthYear && (
-              <View style={styles.dobPreview}>
-                <Ionicons name="checkmark-circle" size={18} color="#4caf50" />
-                <Text style={styles.dobPreviewText}>
-                  {MONTHS[birthMonth]} {birthDay}, {birthYear} · Age {currentYear - birthYear}
+              </View>
+              <View style={s.agePill}>
+                <Ionicons name="checkmark-circle" size={16} color={age >= 18 ? colors.accent : '#ff9800'} />
+                <Text style={[s.agePillText, age < 18 && { color: '#ff9800' }]}>
+                  {age >= 18 ? `You're ${age} years old` : `Must be 18+ · Currently ${age}`}
                 </Text>
               </View>
-            )}
-          </>}
+            </StepShell>
+          )}
 
-          {/* ── STEP 2: About you ── */}
-          {step === 2 && <>
-            <Text style={styles.title}>About you</Text>
-            <Text style={styles.sub}>This is what people will see on your profile</Text>
-            <View style={styles.field}>
-              <Text style={styles.label}>First name <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputWrap}>
-                <Feather name="user" size={17} color={colors.textMuted} />
-                <TextInput style={styles.input} value={name} onChangeText={setName}
-                  placeholder="Your first name" placeholderTextColor={colors.textMuted} />
-              </View>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>I am a <Text style={styles.required}>*</Text></Text>
-              <View style={styles.genderRow}>
-                {['Man', 'Woman', 'Other'].map(g => (
-                  <TouchableOpacity key={g} style={[styles.optBtn, gender === g && styles.optBtnOn]}
-                    onPress={() => { setGender(g); Haptics.selectionAsync(); }}>
-                    <Text style={[styles.optBtnText, gender === g && styles.optBtnTextOn]}>{g}</Text>
+          {/* ── Step 4: Gender ── */}
+          {step === 4 && (
+            <StepShell title="I am a..." sub="">
+              <View style={s.bigCards}>
+                {[
+                  { key: 'Man',       emoji: '👨', label: 'Man' },
+                  { key: 'Woman',     emoji: '👩', label: 'Woman' },
+                  { key: 'Non-binary',emoji: '🌈', label: 'Non-binary' },
+                ].map(opt => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[s.bigCard, gender === opt.key && s.bigCardOn]}
+                    onPress={() => { setGender(opt.key); Haptics.selectionAsync(); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.bigCardEmoji}>{opt.emoji}</Text>
+                    <Text style={[s.bigCardText, gender === opt.key && s.bigCardTextOn]}>{opt.label}</Text>
+                    {gender === opt.key && (
+                      <View style={s.bigCardCheck}>
+                        <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>City you live in <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputWrap}>
-                <Feather name="map-pin" size={17} color={colors.textMuted} />
-                <TextInput style={styles.input} value={location} onChangeText={setLocation}
-                  placeholder="e.g. London, Berlin, New York" placeholderTextColor={colors.textMuted} />
-              </View>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>Where are you originally from?</Text>
-              <View style={styles.inputWrap}>
-                <Feather name="home" size={17} color={colors.textMuted} />
-                <TextInput style={styles.input} value={hometown} onChangeText={setHometown}
-                  placeholder="e.g. Shkodër, Prishtinë, Vlorë" placeholderTextColor={colors.textMuted} />
-              </View>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>Country you live in</Text>
-              <View style={styles.inputWrap}>
-                <Feather name="globe" size={17} color={colors.textMuted} />
-                <TextInput style={styles.input} value={country} onChangeText={setCountry}
-                  placeholder="e.g. United Kingdom, Germany, USA" placeholderTextColor={colors.textMuted} />
-              </View>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.label}>Are you in the diaspora?</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: -4 }}>
-                Diaspora mode shows you Albanians worldwide, not just near you
-              </Text>
-              <View style={styles.diasporaRow}>
-                <TouchableOpacity
-                  style={[styles.diasporaBtn, !diasporaMode && styles.diasporaBtnOn]}
-                  onPress={() => { setDiasporaMode(false); Haptics.selectionAsync(); }}
-                >
-                  <Text style={styles.diasporaFlag}>🇦🇱</Text>
-                  <Text style={[styles.diasporaBtnText, !diasporaMode && styles.diasporaBtnTextOn]}>I'm in Albania/Kosovo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.diasporaBtn, diasporaMode && styles.diasporaBtnOn]}
-                  onPress={() => { setDiasporaMode(true); Haptics.selectionAsync(); }}
-                >
-                  <Text style={styles.diasporaFlag}>✈️</Text>
-                  <Text style={[styles.diasporaBtnText, diasporaMode && styles.diasporaBtnTextOn]}>I'm in the diaspora</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>}
+            </StepShell>
+          )}
 
-          {/* ── STEP 3: Looking for ── */}
-          {step === 3 && <>
-            <Text style={styles.title}>What are you looking for?</Text>
-            <Text style={styles.sub}>Be honest — it helps find your best match</Text>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>I am looking for <Text style={styles.required}>*</Text></Text>
-              {[
-                { key: 'relationship', label: '💍 Long-term relationship' },
-                { key: 'casual', label: '☕ Casual dating' },
-                { key: 'friendship', label: '👋 New friendships' },
-                { key: 'unsure', label: '🤔 Not sure yet' },
-              ].map(opt => (
-                <TouchableOpacity key={opt.key}
-                  style={[styles.optionCard, lookingFor === opt.key && styles.optionCardOn]}
-                  onPress={() => { setLookingFor(opt.key); Haptics.selectionAsync(); }}>
-                  <Text style={[styles.optionLabel, lookingFor === opt.key && styles.optionLabelOn]}>{opt.label}</Text>
-                  {lookingFor === opt.key && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>I want to meet <Text style={styles.required}>*</Text></Text>
-              <View style={styles.genderRow}>
-                {['Men', 'Women', 'Everyone'].map(g => (
-                  <TouchableOpacity key={g} style={[styles.optBtn, lookingForGender === g && styles.optBtnOn]}
-                    onPress={() => { setLookingForGender(g); Haptics.selectionAsync(); }}>
-                    <Text style={[styles.optBtnText, lookingForGender === g && styles.optBtnTextOn]}>{g}</Text>
+          {/* ── Step 5: Looking for ── */}
+          {step === 5 && (
+            <StepShell title="What are you looking for?" sub="Be honest — it helps find your best match">
+              <View style={s.optionCards}>
+                {[
+                  { key: 'relationship', emoji: '💍', label: 'Long-term relationship' },
+                  { key: 'casual',       emoji: '☕', label: 'Something casual' },
+                  { key: 'friendship',   emoji: '👋', label: 'Friendship' },
+                  { key: 'unsure',       emoji: '🤔', label: 'Not sure yet' },
+                ].map(opt => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[s.optionCard, lookingFor === opt.key && s.optionCardOn]}
+                    onPress={() => { setLookingFor(opt.key); Haptics.selectionAsync(); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.optionEmoji}>{opt.emoji}</Text>
+                    <Text style={[s.optionLabel, lookingFor === opt.key && s.optionLabelOn]}>{opt.label}</Text>
+                    {lookingFor === opt.key && <Ionicons name="checkmark-circle" size={20} color={colors.accent} />}
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
+            </StepShell>
+          )}
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Interests <Text style={styles.required}>*</Text> <Text style={styles.labelHint}>(pick at least 1, max 6)</Text></Text>
-              <View style={styles.hobbiesGrid}>
-                {ALL_HOBBIES.map(h => (
-                  <TouchableOpacity key={h} style={[styles.hobbyChip, hobbies.includes(h) && styles.hobbyChipOn]}
-                    onPress={() => toggleHobby(h)}>
-                    <Text style={[styles.hobbyText, hobbies.includes(h) && styles.hobbyTextOn]}>{h}</Text>
+          {/* ── Step 6: Who to meet ── */}
+          {step === 6 && (
+            <StepShell title="Who do you want to meet?" sub="">
+              <View style={s.bigCards}>
+                {[
+                  { key: 'Men',   emoji: '👨', label: 'Men' },
+                  { key: 'Women', emoji: '👩', label: 'Women' },
+                ].map(opt => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[s.bigCard, lookingForGender === opt.key && s.bigCardOn]}
+                    onPress={() => { setLookingForGender(opt.key); Haptics.selectionAsync(); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.bigCardEmoji}>{opt.emoji}</Text>
+                    <Text style={[s.bigCardText, lookingForGender === opt.key && s.bigCardTextOn]}>{opt.label}</Text>
+                    {lookingForGender === opt.key && (
+                      <View style={s.bigCardCheck}>
+                        <Ionicons name="checkmark-circle" size={22} color={colors.accent} />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-          </>}
+            </StepShell>
+          )}
 
-          {/* ── STEP 4: Photo ── */}
-          {step === 4 && <>
-            <Text style={styles.title}>Add your photo</Text>
-            <Text style={styles.sub}>Required — show your best self</Text>
+          {/* ── Step 7: City ── */}
+          {step === 7 && (
+            <StepShell title="What city are you in?" sub="This helps us show you nearby people">
+              <View style={s.inputWrap}>
+                <Feather name="map-pin" size={18} color={colors.textMuted} />
+                <TextInput
+                  style={s.input} value={location} onChangeText={setLocation}
+                  placeholder="e.g. London, New York, Berlin" placeholderTextColor={colors.textMuted}
+                  autoCapitalize="words" autoFocus
+                />
+              </View>
+              <View style={s.inputWrap}>
+                <Feather name="home" size={18} color={colors.textMuted} />
+                <TextInput
+                  style={s.input} value={hometown} onChangeText={setHometown}
+                  placeholder="Hometown (optional) — e.g. Shkodër" placeholderTextColor={colors.textMuted}
+                  autoCapitalize="words"
+                />
+              </View>
+            </StepShell>
+          )}
 
-            <TouchableOpacity style={styles.photoBox} onPress={pickPhoto} activeOpacity={0.9}>
-              {photoUri ? (
-                <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          {/* ── Step 8: Interests ── */}
+          {step === 8 && (
+            <StepShell title="What are your interests?" sub={`Pick up to 6  ·  ${hobbies.length}/6 selected`}>
+              <View style={s.hobbiesGrid}>
+                {ALL_HOBBIES.map(h => {
+                  const on = hobbies.includes(h);
+                  return (
+                    <TouchableOpacity
+                      key={h}
+                      style={[s.chip, on && s.chipOn]}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        if (on) setHobbies(hobbies.filter(x => x !== h));
+                        else if (hobbies.length < 6) setHobbies([...hobbies, h]);
+                        else Alert.alert('Max 6', 'Remove one before adding another.');
+                      }}
+                    >
+                      <Text style={[s.chipText, on && s.chipTextOn]}>{h}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </StepShell>
+          )}
+
+          {/* ── Step 9: Photo ── */}
+          {step === 9 && (
+            <StepShell title="Add your photo" sub="Required — show your best self">
+              <TouchableOpacity style={s.photoBox} onPress={() => pickPhoto(false)} activeOpacity={0.9}>
+                {photoUri
+                  ? <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                  : <View style={s.photoEmpty}>
+                      <Feather name="camera" size={48} color={colors.textMuted} />
+                      <Text style={s.photoEmptyText}>Tap to add photo</Text>
+                    </View>
+                }
+              </TouchableOpacity>
+              <View style={s.mediaBtns}>
+                <TouchableOpacity style={s.mediaBtn} onPress={() => pickPhoto(false)}>
+                  <Feather name="image" size={18} color={colors.textPrimary} />
+                  <Text style={s.mediaBtnText}>Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.mediaBtn} onPress={() => pickPhoto(true)}>
+                  <Feather name="camera" size={18} color={colors.textPrimary} />
+                  <Text style={s.mediaBtnText}>Camera</Text>
+                </TouchableOpacity>
+              </View>
+            </StepShell>
+          )}
+
+          {/* ── Step 10: Video ── */}
+          {step === 10 && (
+            <StepShell title="Add your video 🎥" sub="Show the real you in 15–30 seconds. Required — keeps Dashni fake-free.">
+              {videoUri ? (
+                <View style={s.videoReady}>
+                  <Ionicons name="checkmark-circle" size={52} color={colors.accent} />
+                  <Text style={s.videoReadyText}>Video ready!</Text>
+                  <TouchableOpacity onPress={() => setVideoUri(null)}>
+                    <Text style={s.link}>Choose a different video</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
-                <View style={styles.photoEmpty}>
-                  <Feather name="camera" size={44} color={colors.textMuted} />
-                  <Text style={styles.photoEmptyText}>Tap to add photo</Text>
+                <View style={s.mediaBtns}>
+                  <TouchableOpacity style={[s.mediaBtn, { flex: 1, paddingVertical: 18 }]} onPress={() => pickVideo(true)}>
+                    <Feather name="video" size={22} color={colors.textPrimary} />
+                    <Text style={s.mediaBtnText}>Record</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[s.mediaBtn, { flex: 1, paddingVertical: 18 }]} onPress={() => pickVideo(false)}>
+                    <Feather name="film" size={22} color={colors.textPrimary} />
+                    <Text style={s.mediaBtnText}>Gallery</Text>
+                  </TouchableOpacity>
                 </View>
               )}
-            </TouchableOpacity>
-
-            <View style={styles.photoBtns}>
-              <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
-                <Feather name="image" size={18} color={colors.textPrimary} />
-                <Text style={styles.photoBtnText}>Gallery</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.photoBtn} onPress={takePhoto}>
-                <Feather name="camera" size={18} color={colors.textPrimary} />
-                <Text style={styles.photoBtnText}>Camera</Text>
-              </TouchableOpacity>
-            </View>
-          </>}
-
-          {/* ── STEP 5: Video (optional) ── */}
-          {step === 5 && <>
-            <Text style={styles.title}>Add your video 🎥</Text>
-            <Text style={styles.sub}>Required — this is what makes Dashni different. Show the real you in 15 seconds.</Text>
-            <View style={styles.requiredBadge}>
-              <Feather name="alert-circle" size={14} color="#ff9800" />
-              <Text style={styles.requiredText}>Required — no fake profiles allowed on Dashni</Text>
-            </View>
-            {videoUri ? (
-              <View style={styles.videoPreviewBox}>
-                <Ionicons name="checkmark-circle" size={40} color="#4caf50" />
-                <Text style={styles.videoReadyText}>Video ready! ✅</Text>
-                <TouchableOpacity onPress={() => setVideoUri(null)}>
-                  <Text style={{ color: colors.accent, fontSize: 13 }}>Choose different video</Text>
-                </TouchableOpacity>
+              <View style={s.tipsBox}>
+                <Text style={s.tipsTitle}>Tips for a great video</Text>
+                <Text style={s.tip}>💡 Good lighting makes a huge difference</Text>
+                <Text style={s.tip}>🎤 Say a few words about yourself</Text>
+                <Text style={s.tip}>😊 Be natural and smile!</Text>
               </View>
-            ) : (
-              <>
-              <View style={styles.contentWarning}>
-                <Feather name="shield" size={15} color={colors.textMuted} />
-                <Text style={styles.contentWarningText}>
-                  By uploading you confirm this video contains no nudity, violence, or offensive content and complies with our Community Guidelines.
-                </Text>
-              </View>
-              <View style={styles.videoBtns}>
-                <TouchableOpacity style={styles.videoBtn} onPress={async () => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-                  if (status !== 'granted') return Alert.alert('Permission needed');
-                  const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.4, videoMaxDuration: 15 });
-                  if (!r.canceled) setVideoUri(r.assets[0].uri);
-                }}>
-                  <Feather name="video" size={18} color={colors.textPrimary} />
-                  <Text style={styles.videoBtnText}>Record</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.videoBtn} onPress={async () => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                  if (status !== 'granted') return Alert.alert('Permission needed');
-                  const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.4, videoMaxDuration: 15 });
-                  if (!r.canceled) setVideoUri(r.assets[0].uri);
-                }}>
-                  <Feather name="film" size={18} color={colors.textPrimary} />
-                  <Text style={styles.videoBtnText}>Gallery</Text>
-                </TouchableOpacity>
-              </View>
-              </>
-            )}
-            <View style={styles.tipsBox}>
-              <Text style={styles.tipsTitle}>Tips for a great video</Text>
-              <Text style={styles.tip}>💡 Good lighting makes a huge difference</Text>
-              <Text style={styles.tip}>🎤 Say a few words about yourself</Text>
-              <Text style={styles.tip}>😊 Be natural and smile!</Text>
-            </View>
-          </>}
+            </StepShell>
+          )}
 
-          {/* ── STEP 6: Verify Email ── */}
-          {step === 6 && <>
-            <Text style={styles.title}>Check your email</Text>
-            <Text style={styles.sub}>We sent a 6-digit code to {email}</Text>
-            <View style={styles.otpWrap}>
-              <TextInput
-                style={styles.otpInput}
-                value={otpCode}
-                onChangeText={setOtpCode}
-                keyboardType="number-pad"
-                maxLength={6}
-                placeholder="000000"
-                placeholderTextColor={colors.textMuted}
-                textAlign="center"
-              />
+          {/* ── Step 11: Done ── */}
+          {step === 11 && (
+            <View style={s.doneWrap}>
+              <View style={s.doneCircle}><Text style={{ fontSize: 64 }}>🎉</Text></View>
+              <Text style={s.doneTitle}>Welcome to Dashni, {name}!</Text>
+              <Text style={s.doneSub}>Your profile is live. Start swiping and find your match!</Text>
             </View>
+          )}
+
+          {/* Continue / Create button */}
+          {step < 11 && (
             <TouchableOpacity
-              style={[styles.nextBtn, (loading || otpCode.length < 6) && { opacity: 0.5 }]}
-              onPress={async () => {
-                if (otpCode.length < 6) return;
-                setLoading(true);
-                try {
-                  const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: otpCode, type: 'signup' });
-                  if (error) throw error;
-                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  setStep(7);
-                } catch (e) {
-                  Alert.alert('Invalid code', 'The code is incorrect or has expired. Please try again.');
-                }
-                setLoading(false);
-              }}
-              disabled={loading || otpCode.length < 6}
-              activeOpacity={0.85}
-            >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.nextBtnText}>Verify →</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={async () => {
-              try {
-                await supabase.auth.resend({ type: 'signup', email: email.trim() });
-                Alert.alert('Code sent', 'A new code has been sent to your email.');
-              } catch (e) {}
-            }} style={{ alignSelf: 'center', marginTop: 8 }}>
-              <Text style={styles.link}>Resend code</Text>
-            </TouchableOpacity>
-          </>}
-
-          {/* ── STEP 7: Done ── */}
-          {step === 7 && <>
-            <View style={styles.doneWrap}>
-              <View style={styles.doneCircle}><Text style={{ fontSize: 52 }}>🎉</Text></View>
-              <Text style={styles.doneTitle}>Welcome, {name}!</Text>
-              <Text style={styles.doneSub}>Your profile is live. Start swiping and find your match!</Text>
-            </View>
-          </>}
-
-          {/* Continue button */}
-          {step < 6 && (
-            <TouchableOpacity
-              style={[styles.nextBtn, loading && { opacity: 0.6 }]}
-              onPress={goNext}
+              style={[s.nextBtn, loading && { opacity: 0.6 }]}
+              onPress={handleContinue}
               disabled={loading}
               activeOpacity={0.85}
             >
               {loading
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.nextBtnText}>
-                    {step === 5 ? 'Create account →' : 'Continue →'}
+                : <Text style={s.nextBtnText}>
+                    {step === 10 ? 'Create my account →' : 'Continue →'}
                   </Text>
               }
             </TouchableOpacity>
@@ -587,93 +617,98 @@ export default function SignupScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  progressBar: { height: 3, backgroundColor: colors.border, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: colors.accent },
-  backBtn: { padding: 16, paddingBottom: 0 },
-  scroll: { padding: 24, gap: 20, paddingBottom: 60 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoImg: { width: 34, height: 34, borderRadius: 10 },
-  appName: { fontSize: 20, fontWeight: '800', color: colors.accent },
-  title: { color: colors.textPrimary, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  sub: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: -8 },
-  required: { color: colors.accent },
-  labelHint: { color: colors.textMuted, fontWeight: '400', fontSize: 12 },
-  field: { gap: 10 },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14 },
-  input: { flex: 1, color: colors.textPrimary, fontSize: 15, paddingVertical: 13 },
-  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.bgSurface, alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
-  checkboxOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  checkText: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, flex: 1 },
-  link: { color: colors.accent, fontWeight: '600' },
-  loginHint: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
+// ── Step shell: title + children ─────────────────────────────────────────────
+function StepShell({ title, sub, children }) {
+  return (
+    <View style={s.stepShell}>
+      <Text style={s.title}>{title}</Text>
+      {sub ? <Text style={s.sub}>{sub}</Text> : null}
+      {children}
+    </View>
+  );
+}
 
-  // Birthday pickers
-  pickerRow: { flexDirection: 'row', gap: 8, paddingVertical: 4, paddingHorizontal: 2 },
-  pickerItem: { width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  pickerItemWide: { width: 64 },
-  pickerItemOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  pickerText: { color: colors.textSecondary, fontSize: 14, fontWeight: '500' },
-  pickerTextOn: { color: '#fff', fontWeight: '700' },
-  dobPreview: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(76,175,80,0.1)', borderWidth: 1, borderColor: 'rgba(76,175,80,0.3)', borderRadius: radius.md, padding: 12 },
-  dobPreviewText: { color: '#4caf50', fontSize: 14, fontWeight: '500' },
+// ── Styles ────────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  safe:     { flex: 1, backgroundColor: colors.bg },
+  scroll:   { paddingHorizontal: 24, paddingBottom: 40, flexGrow: 1 },
+  stepShell:{ gap: 20, paddingTop: 16 },
 
-  // Gender / option buttons
-  genderRow: { flexDirection: 'row', gap: 10 },
-  optBtn: { flex: 1, paddingVertical: 13, borderRadius: radius.md, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  optBtnOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
-  optBtnText: { color: colors.textSecondary, fontSize: 14 },
-  optBtnTextOn: { color: colors.accent, fontWeight: '600' },
+  // Progress dots
+  dotsBar:  { flexDirection: 'row', justifyContent: 'center', gap: 5, paddingTop: 12, paddingHorizontal: 24 },
+  dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
+  dotDone:  { backgroundColor: colors.accentBorder },
+  dotActive:{ width: 18, backgroundColor: colors.accent },
 
-  // Looking for
-  optionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 16, gap: 12 },
-  optionCardOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
-  optionLabel: { color: colors.textPrimary, fontSize: 15, flex: 1 },
-  optionLabelOn: { color: colors.accent, fontWeight: '600' },
+  // Back button
+  backBtn:  { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+
+  // Text
+  title:    { color: colors.textPrimary, fontSize: 28, fontWeight: '800', letterSpacing: -0.5, marginTop: 8 },
+  sub:      { color: colors.textSecondary, fontSize: 15, lineHeight: 22, marginTop: -8 },
+  link:     { color: colors.accent, fontWeight: '600', fontSize: 14 },
+
+  // Text input
+  inputWrap:{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14 },
+  input:    { flex: 1, color: colors.textPrimary, fontSize: 16, paddingVertical: 15 },
+
+  // Wheel picker
+  wheelRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, justifyContent: 'center', backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: 12, borderWidth: 1, borderColor: colors.border },
+  wheelCol: { alignItems: 'center', gap: 8 },
+  wheelLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  agePill:  { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', backgroundColor: colors.bgCard, borderRadius: radius.full, paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: colors.border },
+  agePillText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+
+  // Big tappable cards (gender / who to meet)
+  bigCards: { gap: 12 },
+  bigCard:  { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: colors.bgCard, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, padding: 20 },
+  bigCardOn:{ borderColor: colors.accent, backgroundColor: colors.accentDim },
+  bigCardEmoji: { fontSize: 28 },
+  bigCardText:  { color: colors.textSecondary, fontSize: 17, fontWeight: '600', flex: 1 },
+  bigCardTextOn:{ color: colors.textPrimary },
+  bigCardCheck: { marginLeft: 'auto' },
+
+  // Option cards (looking for)
+  optionCards: { gap: 10 },
+  optionCard:  { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.bgCard, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.lg, padding: 18 },
+  optionCardOn:{ borderColor: colors.accent, backgroundColor: colors.accentDim },
+  optionEmoji: { fontSize: 24 },
+  optionLabel: { color: colors.textSecondary, fontSize: 16, flex: 1 },
+  optionLabelOn:{ color: colors.textPrimary, fontWeight: '600' },
 
   // Hobbies
-  hobbiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  hobbyChip: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: colors.bgSurface },
-  hobbyChipOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
-  hobbyText: { color: colors.textSecondary, fontSize: 13 },
-  hobbyTextOn: { color: colors.accent, fontWeight: '500' },
+  hobbiesGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  chip:         { borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 9, paddingHorizontal: 16, backgroundColor: colors.bgSurface },
+  chipOn:       { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
+  chipText:     { color: colors.textSecondary, fontSize: 13 },
+  chipTextOn:   { color: colors.accent, fontWeight: '500' },
 
   // Photo
-  photoBox: { height: 320, borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.bgCard, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  photoEmpty: { alignItems: 'center', gap: 12 },
-  photoEmptyText: { color: colors.textMuted, fontSize: 16 },
-  photoBtns: { flexDirection: 'row', gap: 12 },
-  photoBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 13 },
-  photoBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '500' },
+  photoBox:     { height: 300, borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.bgCard, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  photoEmpty:   { alignItems: 'center', gap: 12 },
+  photoEmptyText:{ color: colors.textMuted, fontSize: 15 },
+
+  // Media buttons (photo / video)
+  mediaBtns:    { flexDirection: 'row', gap: 12 },
+  mediaBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 14 },
+  mediaBtnText: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+
+  // Video ready state
+  videoReady:   { alignItems: 'center', gap: 10, paddingVertical: 20, backgroundColor: colors.bgCard, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.accentBorder },
+  videoReadyText:{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
+
+  // Tips
+  tipsBox:   { backgroundColor: colors.bgCard, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 6 },
+  tipsTitle: { color: colors.textPrimary, fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  tip:       { color: colors.textSecondary, fontSize: 13 },
 
   // Done
-  doneWrap: { alignItems: 'center', gap: 16, paddingVertical: 30 },
-  doneCircle: { width: 110, height: 110, borderRadius: 55, backgroundColor: colors.accentDim, borderWidth: 1, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
-  doneTitle: { color: colors.textPrimary, fontSize: 26, fontWeight: '800', textAlign: 'center' },
-  doneSub: { color: colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  doneWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18, paddingTop: 60 },
+  doneCircle:{ width: 110, height: 110, borderRadius: 55, backgroundColor: colors.accentDim, borderWidth: 2, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
+  doneTitle: { color: colors.textPrimary, fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5 },
+  doneSub:   { color: colors.textSecondary, fontSize: 15, textAlign: 'center', lineHeight: 22 },
 
-  diasporaRow: { gap: 10 },
-  diasporaBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 14 },
-  diasporaBtnOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
-  diasporaFlag: { fontSize: 22 },
-  diasporaBtnText: { color: colors.textSecondary, fontSize: 14, flex: 1 },
-  diasporaBtnTextOn: { color: colors.accent, fontWeight: '600' },
-  requiredBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 1, borderColor: 'rgba(255,152,0,0.3)', borderRadius: radius.md, padding: 12 },
-  requiredText: { color: '#ff9800', fontSize: 13, flex: 1 },
-  contentWarning: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12 },
-  contentWarningText: { color: colors.textMuted, fontSize: 12, lineHeight: 18, flex: 1 },
-  videoPreviewBox: { height: 160, borderRadius: radius.lg, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: 'rgba(76,175,80,0.4)', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  videoReadyText: { color: '#4caf50', fontSize: 16, fontWeight: '700' },
-  tipsBox: { backgroundColor: colors.bgCard, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 6 },
-  tipsTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  tip: { color: colors.textPrimary, fontSize: 13 },
-  nextBtn: { backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 16, alignItems: 'center' },
+  // Continue button
+  nextBtn:     { backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-
-  // OTP
-  otpWrap: { alignItems: 'center' },
-  otpInput: { width: 200, backgroundColor: colors.bgSurface, borderWidth: 2, borderColor: colors.accentBorder, borderRadius: radius.lg, paddingVertical: 18, fontSize: 32, fontWeight: '700', color: colors.textPrimary, letterSpacing: 12 },
 });

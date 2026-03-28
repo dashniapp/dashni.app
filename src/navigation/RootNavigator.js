@@ -256,8 +256,10 @@ export default function RootNavigator() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profileComplete, setProfileComplete] = useState(false);
+  const [profileChecking, setProfileChecking] = useState(false);
 
   const checkProfile = async (userId) => {
+    setProfileChecking(true);
     try {
       const { data: profile } = await supabase
         .from('profiles').select('has_video').eq('id', userId).single();
@@ -268,6 +270,7 @@ export default function RootNavigator() {
     } catch (e) {
       setProfileComplete(false);
     }
+    setProfileChecking(false);
   };
 
   useEffect(() => {
@@ -278,15 +281,20 @@ export default function RootNavigator() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user) checkProfile(session.user.id);
-      else setProfileComplete(false);
+      if (session?.user) {
+        setProfileChecking(true);
+        checkProfile(session.user.id);
+      } else {
+        setProfileComplete(false);
+        setProfileChecking(false);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
 
   onProfileCompleteRef.current = () => setProfileComplete(true);
 
-  if (loading) return null;
+  if (loading || profileChecking) return null;
 
   if (!session) return <AuthStack />;
   if (!profileComplete) return <CompleteProfileGate />;
