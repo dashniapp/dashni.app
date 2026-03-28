@@ -39,6 +39,9 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const { width: W } = Dimensions.get('window');
 
+// Module-level ref so CompleteProfileScreen can call back without nav params
+export const onProfileCompleteRef = { current: null };
+
 const TABS = [
   { name: 'Discover', icon: 'play-circle', lib: 'feather' },
   { name: 'Matches', icon: 'heart', lib: 'feather' },
@@ -237,14 +240,10 @@ function AppStack() {
   );
 }
 
-function CompleteProfileGate({ onComplete }) {
+function CompleteProfileGate() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="CompleteProfile"
-        component={CompleteProfileScreen}
-        initialParams={{ onComplete }}
-      />
+      <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
     </Stack.Navigator>
@@ -283,10 +282,12 @@ export default function RootNavigator() {
     return () => subscription.unsubscribe();
   }, []);
 
+  onProfileCompleteRef.current = () => setProfileComplete(true);
+
   if (loading) return null;
 
   if (!session) return <AuthStack />;
-  if (!profileComplete) return <CompleteProfileGate onComplete={() => setProfileComplete(true)} />;
+  if (!profileComplete) return <CompleteProfileGate />;
   return <AppStack />;
 }
 

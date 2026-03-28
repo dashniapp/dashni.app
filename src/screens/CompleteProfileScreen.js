@@ -8,9 +8,9 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import { useFocusEffect } from '@react-navigation/native';
+import { onProfileCompleteRef } from '../navigation/RootNavigator';
 
-export default function CompleteProfileScreen({ navigation, route }) {
-  const { onComplete } = route.params || {};
+export default function CompleteProfileScreen({ navigation }) {
   const [hasPhoto, setHasPhoto] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,13 +31,13 @@ export default function CompleteProfileScreen({ navigation, route }) {
       setHasPhoto(photoExists);
 
       if (profile?.has_video && photoExists) {
-        onComplete?.();
+        onProfileCompleteRef.current?.();
       }
     } catch (e) {}
     setLoading(false);
-  }, [onComplete]);
+  }, []);
 
-  useFocusEffect(check);
+  useFocusEffect(useCallback(() => { check(); }, [check]));
 
   const done = hasPhoto && hasVideo;
 
@@ -110,7 +110,7 @@ export default function CompleteProfileScreen({ navigation, route }) {
         )}
 
         {done && (
-          <TouchableOpacity style={styles.continueBtn} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onComplete?.(); }} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.continueBtn} onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); onProfileCompleteRef.current?.(); }} activeOpacity={0.85}>
             <Text style={styles.continueBtnText}>Start swiping →</Text>
           </TouchableOpacity>
         )}
