@@ -247,10 +247,11 @@ export default function SignupScreen({ navigation }) {
       if (vRes.ok) await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      ignoreAuthChangeRef.current = false;
+      // Keep ignoreAuthChangeRef true until user taps "Start swiping"
+      // so no stray auth events can trigger checkProfile before we're ready
       setStep(11);
     } catch (e) {
-      ignoreAuthChangeRef.current = false;
+      ignoreAuthChangeRef.current = false; // release on error so login still works
       Alert.alert('Error', e.message);
     }
     setLoading(false);
@@ -604,7 +605,10 @@ export default function SignupScreen({ navigation }) {
               <Text style={s.doneSub}>Your profile is live. Start swiping and find your match!</Text>
               <TouchableOpacity
                 style={s.nextBtn}
-                onPress={() => onProfileCompleteRef.current?.()}
+                onPress={() => {
+                  ignoreAuthChangeRef.current = false;
+                  onProfileCompleteRef.current?.();
+                }}
                 activeOpacity={0.85}
               >
                 <Text style={s.nextBtnText}>Start swiping →</Text>
