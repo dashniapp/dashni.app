@@ -30,6 +30,7 @@ import VerificationScreen from '../screens/VerificationScreen';
 import BlockReportScreen from '../screens/BlockReportScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import CompleteProfileScreen from '../screens/CompleteProfileScreen';
+import AdminScreen from '../screens/AdminScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import LegalScreen from '../screens/LegalScreen';
@@ -231,6 +232,7 @@ function AppStack() {
       <Stack.Screen name="Paywall" component={PaywallScreen} />
       <Stack.Screen name="Premium" component={PremiumScreen} />
       <Stack.Screen name="Legal" component={LegalScreen} />
+      <Stack.Screen name="Admin" component={AdminScreen} />
     </Stack.Navigator>
   );
 }

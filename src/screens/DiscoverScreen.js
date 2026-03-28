@@ -420,10 +420,12 @@ export default function DiscoverScreen({ navigation, route }) {
   const [isScreenFocused, setIsScreenFocused] = useState(true);
   const [matchData, setMatchData]   = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
+  const [isAdmin, setIsAdmin]       = useState(false);
   const flatListRef   = useRef(null);
   const profilesRef   = useRef([]);
   const userIdRef     = useRef(null);
-  const seenRef       = useRef(new Set()); // prevents duplicate inserts this session
+  const seenRef       = useRef(new Set());
+  const spinAnim      = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadProfiles();
@@ -431,6 +433,15 @@ export default function DiscoverScreen({ navigation, route }) {
     const blurSub  = navigation.addListener('blur',  () => setIsScreenFocused(false));
     return () => { focusSub(); blurSub(); };
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const anim = Animated.loop(
+      Animated.timing(spinAnim, { toValue: 1, duration: 5000, useNativeDriver: true })
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [isAdmin]);
 
   // Reload when filters are applied or a user is blocked
   useEffect(() => {
@@ -448,6 +459,7 @@ export default function DiscoverScreen({ navigation, route }) {
       if (!user) { setLoading(false); return; }
 
       userIdRef.current = user.id;
+      setIsAdmin(user.email === 'bjeshkes@gmail.com');
 
       const { data: myPhoto } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
       if (myPhoto?.publicUrl) setMyPhotoUrl(myPhoto.publicUrl + '?t=me');
@@ -613,12 +625,24 @@ export default function DiscoverScreen({ navigation, route }) {
               <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
               <Text style={styles.logo}>Dashni</Text>
             </View>
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.navigate('Filters')}
-            >
-              <Feather name="sliders" size={16} color={colors.textPrimary} />
-            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              {isAdmin && (
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => navigation.navigate('Admin')}
+                >
+                  <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+                    <Feather name="settings" size={16} color={colors.accent} />
+                  </Animated.View>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => navigation.navigate('Filters')}
+              >
+                <Feather name="sliders" size={16} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
         </SafeAreaView>
         <View style={styles.emptyWrap}>
@@ -660,12 +684,24 @@ export default function DiscoverScreen({ navigation, route }) {
             <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
             <Text style={styles.logo}>Dashni</Text>
           </View>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => navigation.navigate('Filters')}
-          >
-            <Feather name="sliders" size={16} color="#fff" />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {isAdmin && (
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => navigation.navigate('Admin')}
+              >
+                <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+                  <Feather name="settings" size={16} color={colors.accent} />
+                </Animated.View>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('Filters')}
+            >
+              <Feather name="sliders" size={16} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
       <MatchModal
@@ -700,6 +736,7 @@ const styles = StyleSheet.create({
 
   headerAbsolute: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 },
   staticHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
+  headerRight:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoRow:        { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoImg:        { width: 28, height: 28, borderRadius: 8 },
   logo:           { fontSize: 20, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
