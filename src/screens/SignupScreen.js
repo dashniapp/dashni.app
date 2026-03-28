@@ -272,9 +272,15 @@ export default function SignupScreen({ navigation }) {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') return Alert.alert('Permission needed');
     const result = fromCamera
-      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 30 })
-      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 30 });
-    if (!result.canceled) setVideoUri(result.assets[0].uri);
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 15 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 15 });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (asset.duration && asset.duration > 15000) {
+      Alert.alert('Video too long', 'Please choose a video under 15 seconds.');
+      return;
+    }
+    setVideoUri(asset.uri);
   };
 
   // ── Computed birthday age ──

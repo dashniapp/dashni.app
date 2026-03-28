@@ -47,6 +47,10 @@ export default function VideoUploadScreen({ navigation }) {
       videoMaxDuration: 15,
     });
     if (!result.canceled) {
+      if (result.assets[0].duration && result.assets[0].duration > 15000) {
+        Alert.alert('Video too long', 'Please choose a video under 15 seconds.');
+        return;
+      }
       setVideoUri(result.assets[0].uri);
       setUploaded(false);
     }
@@ -62,6 +66,10 @@ export default function VideoUploadScreen({ navigation }) {
       videoMaxDuration: 15,
     });
     if (!result.canceled) {
+      if (result.assets[0].duration && result.assets[0].duration > 15000) {
+        Alert.alert('Video too long', 'Please record a video under 15 seconds.');
+        return;
+      }
       setVideoUri(result.assets[0].uri);
       setUploaded(false);
     }

@@ -180,6 +180,10 @@ export default function ProfileScreen({ navigation }) {
       mediaTypes: ['videos'], allowsEditing: true, quality: 0.4, videoMaxDuration: 15,
     });
     if (result.canceled) return;
+    if (result.assets[0].duration && result.assets[0].duration > 15000) {
+      Alert.alert('Video too long', 'Please choose a video under 15 seconds.');
+      return;
+    }
     setUploadingVideo(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();

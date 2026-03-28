@@ -80,7 +80,13 @@ export default function EditProfileScreen({ navigation }) {
   videoUploadBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.accent, borderRadius: radius.md, paddingVertical: 11 },
   videoUploadBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 });
-    if (!result.canceled) setVideoUri(result.assets[0].uri);
+    if (!result.canceled) {
+      if (result.assets[0].duration && result.assets[0].duration > 15000) {
+        Alert.alert('Video too long', 'Please choose a video under 15 seconds.');
+        return;
+      }
+      setVideoUri(result.assets[0].uri);
+    }
   };
 
   const uploadVideo = async () => {
