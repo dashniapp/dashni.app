@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
 const { width: W } = Dimensions.get('window');
@@ -30,7 +30,10 @@ export default function ChatScreen({ route, navigation }) {
   useEffect(() => {
     setupChat();
     return () => {
-      if (subRef.current) supabase.removeChannel(subRef.current);
+      if (subRef.current) {
+        subRef.current.unsubscribe();
+        supabase.removeChannel(subRef.current);
+      }
     };
   }, []);
 
@@ -100,7 +103,7 @@ export default function ChatScreen({ route, navigation }) {
 
       subRef.current = channel;
     } catch (e) {
-      console.log('Chat setup error:', e.message);
+      Alert.alert('Could not load chat', 'Please check your connection and try again.');
     }
   };
 
@@ -171,7 +174,7 @@ export default function ChatScreen({ route, navigation }) {
         type: 'image/jpeg',
       });
 
-      const uploadUrl = `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/avatars/${fileName}`;
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`;
       const uploadRes = await fetch(uploadUrl, {
         method: 'POST',
         headers: {

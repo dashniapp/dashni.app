@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -135,7 +135,7 @@ export default function SignupScreen({ navigation }) {
         const formData = new FormData();
         formData.append('file', { uri: photoUri, name: 'avatar.jpg', type: 'image/jpeg' });
         await fetch(
-          `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/avatars/${user.id}/avatar.jpg`,
+          `${SUPABASE_URL}/storage/v1/object/avatars/${user.id}/avatar.jpg`,
           { method: 'POST', headers: { 'Authorization': `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: formData }
         );
       }
@@ -146,7 +146,7 @@ export default function SignupScreen({ navigation }) {
         const vForm = new FormData();
         vForm.append('file', { uri: videoUri, name: 'profile.mp4', type: 'video/mp4' });
         const vRes = await fetch(
-          `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/videos/${user.id}/profile.mp4`,
+          `${SUPABASE_URL}/storage/v1/object/videos/${user.id}/profile.mp4`,
           { method: 'POST', headers: { 'Authorization': `Bearer ${vidSession.access_token}`, 'x-upsert': 'true' }, body: vForm }
         );
         if (vRes.ok) await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);

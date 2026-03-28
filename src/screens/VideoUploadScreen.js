@@ -8,7 +8,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -81,7 +81,7 @@ export default function VideoUploadScreen({ navigation }) {
         type: 'video/mp4',
       });
 
-      const uploadUrl = `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/videos/${user.id}/profile.mp4`;
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/videos/${user.id}/profile.mp4`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {

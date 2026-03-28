@@ -367,17 +367,9 @@ export default function DiscoverScreen({ navigation }) {
       const { data } = await q.limit(50);
 
       if (data?.length) {
-        // List root of avatars bucket to see which user folders exist
-        const { data: rootList } = await supabase.storage
-          .from('avatars').list('', { limit: 1000 });
-        const hasFolder = new Set((rootList || []).map(f => f.name));
-
         const enriched = data.map(p => {
-          const photoExists = hasFolder.has(p.id);
-
-          const { data: ph } = photoExists
-            ? supabase.storage.from('avatars').getPublicUrl(`${p.id}/avatar.jpg`)
-            : { data: null };
+          const { data: ph } = supabase.storage
+            .from('avatars').getPublicUrl(`${p.id}/avatar.jpg`);
 
           const { data: vi } = supabase.storage
             .from('videos').getPublicUrl(`${p.id}/profile.mp4`);
@@ -389,12 +381,11 @@ export default function DiscoverScreen({ navigation }) {
             locationDisplay = p.hometown;
           }
 
-          const photoUrl  = photoExists && ph?.publicUrl
+          const photoUrl  = ph?.publicUrl
             ? `${ph.publicUrl}?t=${p.id}` : null;
           const videoUrl  = p.has_video && vi?.publicUrl
             ? `${vi.publicUrl}?v=${Date.now()}` : null;
 
-          console.log(`Profile ${p.name}: photo=${!!photoUrl} video=${!!videoUrl}`);
 
           return {
             ...p,
@@ -416,7 +407,7 @@ export default function DiscoverScreen({ navigation }) {
         setProfiles([]);
       }
     } catch (e) {
-      console.log('loadProfiles error:', e.message);
+      Alert.alert('Could not load profiles', 'Please check your connection and try again.');
     }
     setLoading(false);
   };
@@ -451,7 +442,7 @@ export default function DiscoverScreen({ navigation }) {
         ]);
       }
     } catch (e) {
-      console.log('Like error:', e.message);
+      // Like failed silently — not critical enough to interrupt the user
     }
   }, [profiles.length, navigation]);
 

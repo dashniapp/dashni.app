@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Dimensions, Image, ActivityIndicator,
+  Dimensions, Image, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,7 +38,7 @@ export default function MatchesScreen({ navigation }) {
       await Promise.all([loadMatches(user), loadLikes(user)]);
       hasLoadedOnce.current = true;
     } catch (e) {
-      console.log('Load error:', e.message);
+      Alert.alert('Could not load matches', 'Please check your connection and try again.');
     }
     setLoading(false);
     setRefreshing(false);

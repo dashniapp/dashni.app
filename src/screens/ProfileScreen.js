@@ -60,7 +60,6 @@ export default function ProfileScreen({ navigation }) {
 
       // Filter out chat images and other non-profile files
       const existingFiles = new Set((fileList || []).filter(f => !f.name.startsWith('chat_')).map(f => f.name));
-      console.log('Files found:', [...existingFiles]);
 
       // Main photo
       if (existingFiles.has('avatar.jpg')) {
@@ -83,7 +82,7 @@ export default function ProfileScreen({ navigation }) {
       }
       setExtraPhotos(extras);
     } catch (e) {
-      console.log('loadProfile error:', e.message);
+      Alert.alert('Could not load profile', 'Please check your connection and try again.');
     }
     setLoading(false);
   };

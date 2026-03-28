@@ -122,11 +122,6 @@ export default function PaywallScreen({ navigation }) {
                   <Text style={styles.popularText}>Most popular</Text>
                 </View>
               )}
-              {'' && !plan.popular && (
-                <View style={[styles.popularBadge, { backgroundColor: '#4caf50' }]}>
-                  <Text style={styles.popularText}>{''}</Text>
-                </View>
-              )}
               <View style={styles.planLeft}>
                 <View style={[styles.radio, selected === plan.id && styles.radioActive]}>
                   {selected === plan.id && <View style={styles.radioDot} />}

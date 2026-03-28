@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -41,7 +41,10 @@ export default function MessagesScreen({ navigation }) {
 
     return () => {
       unsub();
-      if (realtimeRef.current) supabase.removeChannel(realtimeRef.current);
+      if (realtimeRef.current) {
+        realtimeRef.current.unsubscribe();
+        supabase.removeChannel(realtimeRef.current);
+      }
     };
   }, [navigation]);
 
@@ -111,7 +114,7 @@ export default function MessagesScreen({ navigation }) {
       setConversations(convList);
       hasLoadedOnce.current = true;
     } catch (e) {
-      console.log('Load convos error:', e.message);
+      Alert.alert('Could not load messages', 'Please check your connection and try again.');
     }
     setLoading(false);
   };
