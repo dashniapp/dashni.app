@@ -456,6 +456,10 @@ export default function DiscoverScreen({ navigation, route }) {
         .from('blocks').select('blocked_id').eq('blocker_id', user.id);
       const blockedIds = (blockData || []).map(b => b.blocked_id);
 
+      const { data: likedData } = await supabase
+        .from('likes').select('liked_id').eq('liker_id', user.id);
+      const likedIds = (likedData || []).map(l => l.liked_id);
+
       const filters = await getFilters();
 
       let q = supabase
@@ -469,8 +473,9 @@ export default function DiscoverScreen({ navigation, route }) {
       if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
       if (filters.diaspora) q = q.eq('diaspora_mode', true);
-      if (blockedIds.length > 0)
-        q = q.not('id', 'in', `(${blockedIds.join(',')})`);
+      const excludeIds = [...new Set([...blockedIds, ...likedIds])];
+      if (excludeIds.length > 0)
+        q = q.not('id', 'in', `(${excludeIds.join(',')})`);
 
       const { data } = await q.limit(50);
 

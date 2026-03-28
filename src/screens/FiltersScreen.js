@@ -12,7 +12,7 @@ import { colors, radius } from '../theme';
 export const FILTER_KEY = 'dashni_filters';
 export const DEFAULT_FILTERS = {
   ageMin: 18,
-  ageMax: 50,
+  ageMax: 99,
   diaspora: false,
 };
 
@@ -87,11 +87,11 @@ export default function FiltersScreen({ navigation }) {
           </View>
           <Text style={[styles.subLabel, { marginTop: 12 }]}>Maximum age</Text>
           <View style={styles.row}>
-            {[25, 30, 35, 40, 50].map(v => (
+            {[25, 30, 35, 40, 50, 99].map(v => (
               <TouchableOpacity key={v}
                 style={[styles.chip, ageMax === v && styles.chipOn]}
                 onPress={() => { setAgeMax(v); Haptics.selectionAsync(); }}>
-                <Text style={[styles.chipText, ageMax === v && styles.chipTextOn]}>{v}</Text>
+                <Text style={[styles.chipText, ageMax === v && styles.chipTextOn]}>{v === 99 ? 'Any' : v}</Text>
               </TouchableOpacity>
             ))}
           </View>
