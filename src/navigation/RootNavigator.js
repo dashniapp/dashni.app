@@ -42,7 +42,8 @@ const { width: W } = Dimensions.get('window');
 
 // Module-level refs for signup flow
 export const onProfileCompleteRef  = { current: null };
-export const ignoreAuthChangeRef   = { current: false }; // set true during signup uploads
+export const ignoreAuthChangeRef   = { current: false };
+export const setSignupInProgressRef = { current: null }; // locks navigator to AuthStack during signup
 
 const TABS = [
   { name: 'Discover', icon: 'play-circle', lib: 'feather' },
@@ -258,6 +259,7 @@ export default function RootNavigator() {
   const [loading, setLoading] = useState(true);
   const [profileComplete, setProfileComplete] = useState(false);
   const [profileChecking, setProfileChecking] = useState(false);
+  const [signupInProgress, setSignupInProgress] = useState(false);
 
   const checkProfile = async (userId) => {
     setProfileChecking(true);
@@ -300,11 +302,14 @@ export default function RootNavigator() {
     return () => subscription.unsubscribe();
   }, []);
 
-  onProfileCompleteRef.current = () => setProfileComplete(true);
+  onProfileCompleteRef.current  = () => setProfileComplete(true);
+  setSignupInProgressRef.current = setSignupInProgress;
 
   if (loading || profileChecking) return null;
 
-  if (!session) return <AuthStack />;
+  // During signup or no session: always stay on AuthStack so SignupScreen
+  // keeps running its uploads without navigator switching underneath it
+  if (signupInProgress || !session) return <AuthStack />;
   if (!profileComplete) return <CompleteProfileGate />;
   return <AppStack />;
 }

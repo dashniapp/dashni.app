@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
-import { ignoreAuthChangeRef, onProfileCompleteRef } from '../navigation/RootNavigator';
+import { ignoreAuthChangeRef, onProfileCompleteRef, setSignupInProgressRef } from '../navigation/RootNavigator';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -202,7 +202,8 @@ export default function SignupScreen({ navigation }) {
 
   const createAccount = async () => {
     setLoading(true);
-    ignoreAuthChangeRef.current = true; // block RootNavigator while uploads run
+    ignoreAuthChangeRef.current = true;
+    setSignupInProgressRef.current?.(true); // lock navigator to AuthStack so uploads can finish
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(), password,
@@ -253,7 +254,8 @@ export default function SignupScreen({ navigation }) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setStep(11);
     } catch (e) {
-      ignoreAuthChangeRef.current = false; // release on error so login still works
+      ignoreAuthChangeRef.current = false;
+      setSignupInProgressRef.current?.(false);
       Alert.alert('Error', e.message);
     }
     setLoading(false);
@@ -609,7 +611,8 @@ export default function SignupScreen({ navigation }) {
                 style={s.nextBtn}
                 onPress={() => {
                   ignoreAuthChangeRef.current = false;
-                  onProfileCompleteRef.current?.();
+                  setSignupInProgressRef.current?.(false); // unlock navigator
+                  onProfileCompleteRef.current?.();        // go to AppStack
                 }}
                 activeOpacity={0.85}
               >
