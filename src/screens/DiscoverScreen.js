@@ -549,10 +549,23 @@ export default function DiscoverScreen({ navigation, route }) {
     setLoading(false);
   };
 
-  const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
-    if (flatListRef.current && index < profiles.length - 1) {
-      flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+  const advanceCard = useCallback((index) => {
+    if (isAdmin) {
+      if (flatListRef.current && index < profilesRef.current.length - 1)
+        flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+    } else {
+      // scrollEnabled=false blocks scrollToIndex on iOS — advance by removing current card instead
+      setProfiles(prev => {
+        const next = prev.filter((_, i) => i !== index);
+        profilesRef.current = next;
+        return next;
+      });
+      setCurrentIndex(0);
     }
+  }, [isAdmin]);
+
+  const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
+    advanceCard(index);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -571,7 +584,7 @@ export default function DiscoverScreen({ navigation, route }) {
     } catch (e) {
       // Like failed silently — not critical enough to interrupt the user
     }
-  }, [profiles.length, navigation]);
+  }, [advanceCard, navigation]);
 
   const deleteCurrentProfile = useCallback(() => {
     const target = profilesRef.current[currentIndex];
@@ -643,14 +656,11 @@ export default function DiscoverScreen({ navigation, route }) {
       isScreenFocused={isScreenFocused}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
-      onPass={() => {
-        if (flatListRef.current && index < profiles.length - 1)
-          flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
-      }}
+      onPass={() => advanceCard(index)}
       onSuper={() => handleLike(item, index, true)}
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
-  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused]);
+  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, advanceCard]);
 
   if (loading) {
     return (
@@ -716,6 +726,7 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled
+        scrollEnabled={isAdmin}
         decelerationRate={0.85}
         disableIntervalMomentum={true}
         showsVerticalScrollIndicator={false}

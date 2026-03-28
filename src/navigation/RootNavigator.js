@@ -148,6 +148,9 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
         friction: 6,
       }).start();
     });
+    // Clear badges instantly when user opens the respective tab
+    if (state.index === 1) setNewLikesCount(0);
+    if (state.index === 2) setUnreadCount(0);
   }, [state.index]);
 
   return (
