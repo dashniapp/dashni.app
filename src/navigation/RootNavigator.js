@@ -29,6 +29,7 @@ import BoostScreen from '../screens/BoostScreen';
 import VerificationScreen from '../screens/VerificationScreen';
 import BlockReportScreen from '../screens/BlockReportScreen';
 import BlockedUsersScreen from '../screens/BlockedUsersScreen';
+import CompleteProfileScreen from '../screens/CompleteProfileScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import LegalScreen from '../screens/LegalScreen';
@@ -234,24 +235,57 @@ function AppStack() {
   );
 }
 
+function CompleteProfileGate({ onComplete }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="CompleteProfile"
+        component={CompleteProfileScreen}
+        initialParams={{ onComplete }}
+      />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
+    </Stack.Navigator>
+  );
+}
+
 export default function RootNavigator() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(false);
+
+  const checkProfile = async (userId) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles').select('has_video').eq('id', userId).single();
+      const { data: files } = await supabase.storage
+        .from('avatars').list(userId, { limit: 5 });
+      const hasPhoto = (files || []).some(f => f.name === 'avatar.jpg');
+      setProfileComplete(!!(profile?.has_video && hasPhoto));
+    } catch (e) {
+      setProfileComplete(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setLoading(false);
+      if (session?.user) checkProfile(session.user.id).then(() => setLoading(false));
+      else setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user) checkProfile(session.user.id);
+      else setProfileComplete(false);
     });
     return () => subscription.unsubscribe();
   }, []);
 
   if (loading) return null;
 
-  return session ? <AppStack /> : <AuthStack />;
+  if (!session) return <AuthStack />;
+  if (!profileComplete) return <CompleteProfileGate onComplete={() => setProfileComplete(true)} />;
+  return <AppStack />;
 }
 
 const styles = StyleSheet.create({
