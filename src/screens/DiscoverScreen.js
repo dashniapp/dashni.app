@@ -340,10 +340,14 @@ export default function DiscoverScreen({ navigation, route }) {
     return () => { focusSub(); blurSub(); };
   }, []);
 
-  // Reload only when filters are actually applied
+  // Reload when filters are applied or a user is blocked
   useEffect(() => {
     if (route.params?.filtersApplied) loadProfiles();
   }, [route.params?.filtersApplied]);
+
+  useEffect(() => {
+    if (route.params?.reloadFeed) loadProfiles();
+  }, [route.params?.reloadFeed]);
 
   const loadProfiles = async () => {
     setLoading(true);

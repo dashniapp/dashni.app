@@ -17,7 +17,9 @@ const REPORT_REASONS = [
 ];
 
 export default function BlockReportScreen({ navigation, route }) {
-  const { name, userId } = route.params || { name: 'this user', userId: null };
+  const { profile, name: nameParam, userId: userIdParam } = route.params || {};
+  const name = profile?.name || nameParam || 'this user';
+  const userId = profile?.id || userIdParam || null;
   const [selectedReason, setSelectedReason] = useState(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -38,8 +40,14 @@ export default function BlockReportScreen({ navigation, route }) {
                 blocker_id: user.id,
                 blocked_id: userId,
               });
-              Alert.alert('Blocked', `${name} has been blocked and will no longer appear in your feed.`);
-              navigation.goBack();
+              Alert.alert(
+                'Blocked',
+                `${name} has been blocked and will no longer appear in your feed.`,
+                [{ text: 'OK', onPress: () => navigation.navigate('App', {
+                  screen: 'Discover',
+                  params: { reloadFeed: Date.now() },
+                }) }]
+              );
             } catch (e) {
               Alert.alert('Error', 'Could not block user. Please try again.');
             }
