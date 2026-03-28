@@ -494,7 +494,8 @@ export default function DiscoverScreen({ navigation, route }) {
       if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
       if (filters.diaspora) q = q.eq('diaspora_mode', true);
-      const excludeIds = [...new Set([...blockedIds, ...likedIds, ...passedIds])];
+      const adminMode = user.email === 'bjeshkes@gmail.com';
+      const excludeIds = [...new Set([...blockedIds, ...likedIds, ...(adminMode ? [] : passedIds)])];
       if (excludeIds.length > 0)
         q = q.not('id', 'in', `(${excludeIds.join(',')})`);
 
