@@ -42,7 +42,7 @@ export default function SettingsScreen({ navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Delete profile photos from storage
+      // Delete all storage files (photos + video)
       await supabase.storage.from('avatars').remove([
         `${user.id}/avatar.jpg`,
         `${user.id}/photo_1.jpg`,
@@ -51,17 +51,13 @@ export default function SettingsScreen({ navigation }) {
         `${user.id}/photo_4.jpg`,
         `${user.id}/photo_5.jpg`,
       ]);
+      await supabase.storage.from('videos').remove([`${user.id}/profile.mp4`]);
 
-      // Delete all user data from database
-      await supabase.from('messages').delete().or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-      await supabase.from('matches').delete().or(`user_1.eq.${user.id},user_2.eq.${user.id}`);
-      await supabase.from('likes').delete().or(`liker_id.eq.${user.id},liked_id.eq.${user.id}`);
-      await supabase.from('profiles').delete().eq('id', user.id);
+      // Delete all DB data + auth user via secure server-side function
+      const { error } = await supabase.rpc('delete_user');
+      if (error) throw error;
 
-      // Sign out (auth user deletion requires server-side, this removes all data)
       await supabase.auth.signOut();
-
-      Alert.alert('Account deleted', 'Your account and all data have been permanently deleted.');
     } catch (e) {
       Alert.alert('Error', 'Failed to delete account. Please contact support@dashni.app');
     }
