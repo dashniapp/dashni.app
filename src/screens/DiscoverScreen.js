@@ -18,11 +18,21 @@ import { colors, radius } from '../theme';
 const { width: W, height: H } = Dimensions.get('window');
 
 // ── Inline video (only renders when on video slide) ──────────────────────────
-function InlineVideo({ uri }) {
+function InlineVideo({ uri, isScreenFocused }) {
   const [playing, setPlaying] = useState(true);
   const player = useVideoPlayer(uri, p => {
     if (p) { p.loop = true; p.play(); }
   });
+
+  useEffect(() => {
+    if (!isScreenFocused) {
+      player.pause();
+      setPlaying(false);
+    } else {
+      player.play();
+      setPlaying(true);
+    }
+  }, [isScreenFocused]);
 
   return (
     <TouchableOpacity
@@ -54,7 +64,7 @@ function InlineVideo({ uri }) {
 
 // ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
-  profile, isActive, onInfo, onLike, onPass, onSuper,
+  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onSuper,
 }) {
   const likeScale  = useRef(new Animated.Value(0)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
@@ -124,7 +134,7 @@ const ProfileCard = memo(function ProfileCard({
       )}
 
       {currentSlide.type === 'video' && isActive && (
-        <InlineVideo uri={currentSlide.url} />
+        <InlineVideo uri={currentSlide.url} isScreenFocused={isScreenFocused} />
       )}
 
       {currentSlide.type === 'video' && !isActive && (
@@ -302,34 +312,24 @@ const ProfileCard = memo(function ProfileCard({
 });
 
 // ── Main screen ───────────────────────────────────────────────────────────────
-export default function DiscoverScreen({ navigation }) {
+export default function DiscoverScreen({ navigation, route }) {
   const [profiles, setProfiles]     = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading]       = useState(true);
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
   const flatListRef = useRef(null);
-
-  const needsReload = React.useRef(false);
 
   useEffect(() => {
     loadProfiles();
-    const unsub = navigation.addListener('focus', () => {
-      if (needsReload.current) {
-        needsReload.current = false;
-        loadProfiles();
-      }
-    });
-    return unsub;
+    const focusSub = navigation.addListener('focus', () => setIsScreenFocused(true));
+    const blurSub  = navigation.addListener('blur',  () => setIsScreenFocused(false));
+    return () => { focusSub(); blurSub(); };
   }, []);
 
-  // Set flag when going to filters
+  // Reload only when filters are actually applied
   useEffect(() => {
-    const unsub = navigation.addListener('blur', (e) => {
-      // Check if navigating to Filters
-      const state = navigation.getState();
-      if (state) needsReload.current = true;
-    });
-    return unsub;
-  }, []);
+    if (route.params?.filtersApplied) loadProfiles();
+  }, [route.params?.filtersApplied]);
 
   const loadProfiles = async () => {
     setLoading(true);
@@ -458,6 +458,7 @@ export default function DiscoverScreen({ navigation }) {
       key={item.id}
       profile={item}
       isActive={index === currentIndex}
+      isScreenFocused={isScreenFocused}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
       onPass={() => {
@@ -466,7 +467,7 @@ export default function DiscoverScreen({ navigation }) {
       }}
       onSuper={() => handleLike(item, index, true)}
     />
-  ), [currentIndex, navigation, profiles.length, handleLike]);
+  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused]);
 
   if (loading) {
     return (

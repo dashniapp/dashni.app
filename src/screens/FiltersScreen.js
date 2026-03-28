@@ -46,7 +46,10 @@ export default function FiltersScreen({ navigation }) {
     await AsyncStorage.setItem(FILTER_KEY, JSON.stringify({
       ageMin, ageMax, showVideosOnly, interestedIn,
     }));
-    navigation.goBack();
+    navigation.navigate('App', {
+      screen: 'Discover',
+      params: { filtersApplied: Date.now() },
+    });
   };
 
   const reset = async () => {
