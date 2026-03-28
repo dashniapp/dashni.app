@@ -19,6 +19,38 @@ function VideoThumb({ uri }) {
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
+function VideoPlayerModal({ uri, visible, onClose }) {
+  const [playing, setPlaying] = useState(true);
+  const player = useVideoPlayer(visible && uri ? uri : null, p => {
+    if (p) { p.loop = true; p.play(); }
+  });
+  useEffect(() => { if (visible) setPlaying(true); }, [visible]);
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        {visible && uri && (
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1}
+            onPress={() => { if (playing) { player.pause(); setPlaying(false); } else { player.play(); setPlaying(true); } }}>
+            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+            {!playing && (
+              <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="play" size={28} color="#fff" />
+                </View>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 60, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}
+          onPress={onClose}>
+          <Feather name="x" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+}
+
 export default function ProfileScreen({ navigation }) {
   const [profile, setProfile] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
@@ -27,6 +59,7 @@ export default function ProfileScreen({ navigation }) {
   const [uploadingSlot, setUploadingSlot] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [showVideoMenu, setShowVideoMenu] = useState(false);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -359,7 +392,8 @@ export default function ProfileScreen({ navigation }) {
             {videoUrl ? (
               <TouchableOpacity
                 style={styles.photoCell}
-                onPress={() => setShowVideoMenu(true)}
+                onPress={() => setShowVideoPlayer(true)}
+                onLongPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowVideoMenu(true); }}
                 activeOpacity={0.85}
               >
                 {uploadingVideo ? (
@@ -373,7 +407,7 @@ export default function ProfileScreen({ navigation }) {
                   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', padding: 6 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingVertical: 3, paddingHorizontal: 8 }}>
                       <Ionicons name="play" size={10} color="#fff" />
-                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>VIDEO</Text>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>TAP · HOLD ···</Text>
                     </View>
                   </View>
                   <View style={styles.videoThumbDots}>
@@ -464,6 +498,9 @@ export default function ProfileScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Video fullscreen player */}
+        <VideoPlayerModal uri={videoUrl} visible={showVideoPlayer} onClose={() => setShowVideoPlayer(false)} />
 
         {/* Video options menu */}
         <Modal visible={showVideoMenu} transparent animationType="slide" onRequestClose={() => setShowVideoMenu(false)}>

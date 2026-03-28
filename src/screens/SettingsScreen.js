@@ -53,9 +53,16 @@ export default function SettingsScreen({ navigation }) {
       ]);
       await supabase.storage.from('videos').remove([`${user.id}/profile.mp4`]);
 
-      // Delete all DB data + auth user via secure server-side function
-      const { error } = await supabase.rpc('delete_user');
-      if (error) throw error;
+      // Try RPC (also removes auth.users row). Fall back to manual deletion if not set up yet.
+      const { error: rpcError } = await supabase.rpc('delete_user');
+      if (rpcError) {
+        await supabase.from('messages').delete().or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+        await supabase.from('matches').delete().or(`user_1.eq.${user.id},user_2.eq.${user.id}`);
+        await supabase.from('likes').delete().or(`liker_id.eq.${user.id},liked_id.eq.${user.id}`);
+        await supabase.from('blocks').delete().or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`);
+        await supabase.from('reports').delete().eq('reporter_id', user.id);
+        await supabase.from('profiles').delete().eq('id', user.id);
+      }
 
       await supabase.auth.signOut();
     } catch (e) {
