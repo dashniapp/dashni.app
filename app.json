@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Dashni",
+    "slug": "dashni-albanian-dating",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#e91e8c"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourname.dashni",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Dashni uses your camera to record profile videos.",
+        "NSMicrophoneUsageDescription": "Dashni uses your microphone for video recording.",
+        "NSPhotoLibraryUsageDescription": "Dashni accesses your photos for your profile."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#e91e8c"
+      },
+      "package": "com.yourname.dashni",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-image-picker"
+    ]
+  }
+}
