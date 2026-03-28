@@ -248,9 +248,7 @@ export default function ProfileScreen({ navigation }) {
       { text: 'Remove', style: 'destructive', onPress: async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
-          console.log('Deleting:', `${user.id}/photo_${slot + 1}.jpg`);
           const { error } = await supabase.storage.from('avatars').remove([`${user.id}/photo_${slot + 1}.jpg`]);
-          console.log('Delete result:', error);
           if (error) { Alert.alert('Delete failed', error.message); return; }
           const newExtras = [...extraPhotos];
           newExtras[slot] = null;

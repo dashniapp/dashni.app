@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
-  Image,
 } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -38,8 +37,6 @@ import LegalScreen from '../screens/LegalScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const { width: W } = Dimensions.get('window');
-
 // Module-level refs for signup flow
 export const onProfileCompleteRef  = { current: null };
 export const ignoreAuthChangeRef   = { current: false };

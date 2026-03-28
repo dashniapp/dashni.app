@@ -47,7 +47,7 @@ export default function EditProfileScreen({ navigation }) {
         }
       }
     } catch (e) {
-      console.log('Load error:', e.message);
+      // profile load failed silently
     }
     setLoading(false);
   };
@@ -68,18 +68,7 @@ export default function EditProfileScreen({ navigation }) {
     if (status !== 'granted') return Alert.alert('Permission needed');
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'], allowsEditing: true, quality: 0.4, videoMaxDuration: 15,
-      section: { backgroundColor: colors.bgCard, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12, marginBottom: 16 },
-  sectionTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
-  videoExisting: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(76,175,80,0.1)', borderRadius: radius.md, padding: 10 },
-  videoExistingText: { color: '#4caf50', fontSize: 14 },
-  videoReady: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.accentDim, borderRadius: radius.md, padding: 10 },
-  videoReadyText: { color: colors.accent, fontSize: 14 },
-  videoBtnRow: { flexDirection: 'row', gap: 10 },
-  videoPickBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 11 },
-  videoPickBtnText: { color: colors.textPrimary, fontSize: 14 },
-  videoUploadBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.accent, borderRadius: radius.md, paddingVertical: 11 },
-  videoUploadBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-});
+    });
     if (!result.canceled) {
       if (result.assets[0].duration && result.assets[0].duration > 15000) {
         Alert.alert('Video too long', 'Please choose a video under 15 seconds.');

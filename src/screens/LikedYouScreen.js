@@ -32,7 +32,7 @@ export default function LikedYouScreen({ navigation }) {
         .eq('liked_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) { console.log('Likes error:', error.message); return; }
+      if (error) return;
       if (!data || data.length === 0) { setLikes([]); setLoading(false); return; }
 
       // Deduplicate - one entry per person, keep most recent
@@ -65,9 +65,8 @@ export default function LikedYouScreen({ navigation }) {
       });
 
       setLikes(likeList);
-    } catch (e) {
-      console.log('Load likes error:', e.message);
-    }
+    } catch (e) {}
+
     setLoading(false);
   };
 
