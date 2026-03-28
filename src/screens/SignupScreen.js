@@ -16,7 +16,7 @@ const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 60 }, (_, i) => currentYear - 18 - i);
 
-const STEPS = ['Account', 'Birthday', 'About you', 'Looking for', 'Your photo', 'Your video', 'Done'];
+const STEPS = ['Account', 'Birthday', 'About you', 'Looking for', 'Your photo', 'Your video', 'Verify', 'Done'];
 
 export default function SignupScreen({ navigation }) {
   const [step, setStep] = useState(0);
@@ -47,6 +47,7 @@ export default function SignupScreen({ navigation }) {
   const [videoUri, setVideoUri] = useState(null);
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
 
   const ALL_HOBBIES = [
     'Muzikë 🎵', 'Udhëtime ✈️', 'Fitness 💪', 'Gatim 🍳', 'Art 🎨',
@@ -508,8 +509,54 @@ export default function SignupScreen({ navigation }) {
             </View>
           </>}
 
-          {/* ── STEP 6: Done ── */}
+          {/* ── STEP 6: Verify Email ── */}
           {step === 6 && <>
+            <Text style={styles.title}>Check your email</Text>
+            <Text style={styles.sub}>We sent a 6-digit code to {email}</Text>
+            <View style={styles.otpWrap}>
+              <TextInput
+                style={styles.otpInput}
+                value={otpCode}
+                onChangeText={setOtpCode}
+                keyboardType="number-pad"
+                maxLength={6}
+                placeholder="000000"
+                placeholderTextColor={colors.textMuted}
+                textAlign="center"
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.nextBtn, (loading || otpCode.length < 6) && { opacity: 0.5 }]}
+              onPress={async () => {
+                if (otpCode.length < 6) return;
+                setLoading(true);
+                try {
+                  const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: otpCode, type: 'signup' });
+                  if (error) throw error;
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  setStep(7);
+                } catch (e) {
+                  Alert.alert('Invalid code', 'The code is incorrect or has expired. Please try again.');
+                }
+                setLoading(false);
+              }}
+              disabled={loading || otpCode.length < 6}
+              activeOpacity={0.85}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.nextBtnText}>Verify →</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={async () => {
+              try {
+                await supabase.auth.resend({ type: 'signup', email: email.trim() });
+                Alert.alert('Code sent', 'A new code has been sent to your email.');
+              } catch (e) {}
+            }} style={{ alignSelf: 'center', marginTop: 8 }}>
+              <Text style={styles.link}>Resend code</Text>
+            </TouchableOpacity>
+          </>}
+
+          {/* ── STEP 7: Done ── */}
+          {step === 7 && <>
             <View style={styles.doneWrap}>
               <View style={styles.doneCircle}><Text style={{ fontSize: 52 }}>🎉</Text></View>
               <Text style={styles.doneTitle}>Welcome, {name}!</Text>
@@ -625,4 +672,8 @@ const styles = StyleSheet.create({
   tip: { color: colors.textPrimary, fontSize: 13 },
   nextBtn: { backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 16, alignItems: 'center' },
   nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  // OTP
+  otpWrap: { alignItems: 'center' },
+  otpInput: { width: 200, backgroundColor: colors.bgSurface, borderWidth: 2, borderColor: colors.accentBorder, borderRadius: radius.lg, paddingVertical: 18, fontSize: 32, fontWeight: '700', color: colors.textPrimary, letterSpacing: 12 },
 });

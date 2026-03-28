@@ -325,12 +325,101 @@ const ProfileCard = memo(function ProfileCard({
   );
 });
 
+// ── Match Modal ───────────────────────────────────────────────────────────────
+function MatchModal({ matchData, myPhotoUrl, onClose, onMessage }) {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const heart1 = useRef(new Animated.Value(0)).current;
+  const heart2 = useRef(new Animated.Value(0)).current;
+  const heart3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!matchData) return;
+    scaleAnim.setValue(0);
+    heart1.setValue(0); heart2.setValue(0); heart3.setValue(0);
+    Animated.sequence([
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 7 }),
+      Animated.stagger(200, [
+        Animated.timing(heart1, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(heart2, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(heart3, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, [matchData]);
+
+  if (!matchData) return null;
+
+  const heartStyle = (anim, offsetX) => ({
+    position: 'absolute',
+    bottom: 120,
+    left: '50%',
+    marginLeft: offsetX,
+    opacity: anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] }),
+    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -160] }) }],
+  });
+
+  return (
+    <View style={matchStyles.overlay}>
+      {[{ anim: heart1, x: -40 }, { anim: heart2, x: 0 }, { anim: heart3, x: 40 }].map((h, i) => (
+        <Animated.Text key={i} style={heartStyle(h.anim, h.x)}>💘</Animated.Text>
+      ))}
+      <Animated.View style={[matchStyles.card, { transform: [{ scale: scaleAnim }] }]}>
+        <Text style={matchStyles.titleEmoji}>💘</Text>
+        <Text style={matchStyles.title}>It's a Match!</Text>
+        <Text style={matchStyles.sub}>You and {matchData.profile.name} liked each other!</Text>
+        <View style={matchStyles.photosRow}>
+          <View style={[matchStyles.photoCircle, matchStyles.photoLeft]}>
+            {myPhotoUrl
+              ? <Image source={{ uri: myPhotoUrl }} style={matchStyles.photoImg} />
+              : <View style={[matchStyles.photoImg, { backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Feather name="user" size={32} color={colors.accent} />
+                </View>
+            }
+          </View>
+          <View style={[matchStyles.photoCircle, matchStyles.photoRight]}>
+            {matchData.profile.photoUrl
+              ? <Image source={{ uri: matchData.profile.photoUrl }} style={matchStyles.photoImg} />
+              : <View style={[matchStyles.photoImg, { backgroundColor: colors.accentDim, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ fontSize: 32 }}>{matchData.profile.initials}</Text>
+                </View>
+            }
+          </View>
+        </View>
+        <TouchableOpacity style={matchStyles.msgBtn} onPress={onMessage} activeOpacity={0.85}>
+          <Text style={matchStyles.msgBtnText}>Say Hello 💬</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={matchStyles.skipBtn} onPress={onClose} activeOpacity={0.85}>
+          <Text style={matchStyles.skipBtnText}>Keep Swiping</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  );
+}
+
+const matchStyles = StyleSheet.create({
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
+  card: { width: '85%', backgroundColor: '#1a0f2e', borderRadius: 28, borderWidth: 1, borderColor: 'rgba(255,107,107,0.3)', padding: 28, alignItems: 'center', gap: 14 },
+  titleEmoji: { fontSize: 48 },
+  title: { color: '#fff', fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
+  sub: { color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center' },
+  photosRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 8, height: 110 },
+  photoCircle: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden', borderWidth: 3, borderColor: '#ff6b6b', position: 'absolute' },
+  photoLeft: { left: 0, zIndex: 1 },
+  photoRight: { left: 60, zIndex: 2 },
+  photoImg: { width: '100%', height: '100%' },
+  msgBtn: { width: '100%', backgroundColor: '#ff6b6b', borderRadius: 50, paddingVertical: 15, alignItems: 'center' },
+  msgBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  skipBtn: { paddingVertical: 8 },
+  skipBtnText: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
+});
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function DiscoverScreen({ navigation, route }) {
   const [profiles, setProfiles]     = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading]       = useState(true);
   const [isScreenFocused, setIsScreenFocused] = useState(true);
+  const [matchData, setMatchData]   = useState(null);
+  const [myPhotoUrl, setMyPhotoUrl] = useState(null);
   const flatListRef = useRef(null);
 
   useEffect(() => {
@@ -354,6 +443,9 @@ export default function DiscoverScreen({ navigation, route }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      const { data: myPhoto } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
+      if (myPhoto?.publicUrl) setMyPhotoUrl(myPhoto.publicUrl + '?t=me');
 
       const { data: me } = await supabase
         .from('profiles')
@@ -447,17 +539,7 @@ export default function DiscoverScreen({ navigation, route }) {
           user_1: user.id < likedProfile.id ? user.id : likedProfile.id,
           user_2: user.id < likedProfile.id ? likedProfile.id : user.id,
         });
-        Alert.alert("It's a Match! 🎉", `You and ${likedProfile.name} liked each other!`, [
-          { text: 'Keep swiping', style: 'cancel' },
-          { text: 'Message', onPress: () => navigation.navigate('Chat', {
-            name: likedProfile.name,
-            initials: likedProfile.initials,
-            bgColor: '#14102a',
-            accentColor: '#ff6b6b',
-            userId: likedProfile.id,
-            photoUrl: likedProfile.photoUrl,
-          })},
-        ]);
+        setMatchData({ profile: likedProfile });
       }
     } catch (e) {
       // Like failed silently — not critical enough to interrupt the user
@@ -563,6 +645,22 @@ export default function DiscoverScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+      <MatchModal
+        matchData={matchData}
+        myPhotoUrl={myPhotoUrl}
+        onClose={() => setMatchData(null)}
+        onMessage={() => {
+          setMatchData(null);
+          navigation.navigate('Chat', {
+            name: matchData.profile.name,
+            initials: matchData.profile.initials,
+            bgColor: '#14102a',
+            accentColor: '#ff6b6b',
+            userId: matchData.profile.id,
+            photoUrl: matchData.profile.photoUrl,
+          });
+        }}
+      />
     </View>
   );
 }

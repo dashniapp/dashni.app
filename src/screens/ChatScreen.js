@@ -21,9 +21,6 @@ export default function ChatScreen({ route, navigation }) {
   const [replyTo, setReplyTo] = useState(null);
   const [showReactions, setShowReactions] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [showCallModal, setShowCallModal] = useState(false);
-  const [callType, setCallType] = useState('voice');
-  const [callActive, setCallActive] = useState(false);
   const flatListRef = useRef(null);
   const subRef = useRef(null);
 
@@ -213,10 +210,11 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   const startCall = (type) => {
-    setCallType(type);
-    setCallActive(false);
-    setShowCallModal(true);
-    setTimeout(() => setCallActive(true), 2000);
+    Alert.alert(
+      type === 'video' ? '📹 Video calls coming soon' : '📞 Voice calls coming soon',
+      "We're working on bringing you seamless calls. This feature will be available in the next update!",
+      [{ text: 'Got it', style: 'default' }]
+    );
   };
 
   const renderMessage = ({ item }) => {
@@ -408,45 +406,6 @@ export default function ChatScreen({ route, navigation }) {
         </TouchableOpacity>
       </Modal>
 
-      {/* Call modal */}
-      <Modal visible={showCallModal} transparent animationType="slide" onRequestClose={() => setShowCallModal(false)}>
-        <View style={styles.callOverlay}>
-          <View style={styles.callCard}>
-            <View style={[styles.callAvatar, { backgroundColor: bgColor || '#14102a' }]}>
-              <Text style={[styles.callAvatarText, { color: accentColor || colors.accent }]}>{initials || '?'}</Text>
-            </View>
-            <Text style={styles.callName}>{name || 'Calling...'}</Text>
-            <Text style={styles.callStatus}>
-              {callActive ? (callType === 'video' ? 'Video call connected' : 'Call connected') : 'Calling...'}
-            </Text>
-            {callType === 'video' && callActive && (
-              <View style={styles.videoPlaceholder}>
-                <Ionicons name="videocam" size={32} color={colors.textMuted} />
-                <Text style={styles.videoPlaceholderText}>Camera preview</Text>
-              </View>
-            )}
-            <View style={styles.callActions}>
-              <TouchableOpacity style={styles.callActionBtn}>
-                <Feather name="mic-off" size={22} color="#fff" />
-              </TouchableOpacity>
-              {callType === 'video' && (
-                <TouchableOpacity style={styles.callActionBtn}>
-                  <Ionicons name="camera-reverse-outline" size={22} color="#fff" />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.callActionBtn}>
-                <Feather name="volume-2" size={22} color="#fff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.callActionBtn, styles.callEndBtn]}
-                onPress={() => { setShowCallModal(false); setCallActive(false); }}
-              >
-                <Feather name="phone-off" size={22} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }

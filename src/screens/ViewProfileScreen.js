@@ -21,23 +21,39 @@ const LOOKING_FOR_LABELS = {
 };
 
 function VideoPlayerModal({ uri, visible, onClose }) {
+  const [playing, setPlaying] = useState(true);
   const player = useVideoPlayer(visible && uri ? uri : null, p => {
     if (p) { p.loop = true; p.play(); }
   });
+
+  useEffect(() => { if (visible) setPlaying(true); }, [visible]);
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         {visible && uri && (
-          <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
-        )}
-        <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: 16 }}>
-          <TouchableOpacity
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}
-            onPress={onClose}
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1}
+            onPress={() => {
+              if (playing) { player.pause(); setPlaying(false); }
+              else { player.play(); setPlaying(true); }
+            }}
           >
-            <Feather name="x" size={20} color="#fff" />
+            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+            {!playing && (
+              <View style={{ ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="play" size={28} color="#fff" />
+                </View>
+              </View>
+            )}
           </TouchableOpacity>
-        </SafeAreaView>
+        )}
+        <TouchableOpacity
+          style={{ position: 'absolute', top: 60, right: 16, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' }}
+          onPress={onClose}
+        >
+          <Feather name="x" size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
     </Modal>
   );
