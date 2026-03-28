@@ -263,11 +263,17 @@ export default function RootNavigator() {
     setProfileChecking(true);
     try {
       const { data: profile } = await supabase
-        .from('profiles').select('has_video').eq('id', userId).single();
-      const { data: files } = await supabase.storage
-        .from('avatars').list(userId, { limit: 5 });
-      const hasPhoto = (files || []).some(f => f.name === 'avatar.jpg');
-      setProfileComplete(!!(profile?.has_video && hasPhoto));
+        .from('profiles').select('has_video, signup_complete').eq('id', userId).single();
+
+      if (!profile?.signup_complete) {
+        // User hasn't finished signup yet — never show the gate
+        setProfileComplete(true);
+      } else {
+        const { data: files } = await supabase.storage
+          .from('avatars').list(userId, { limit: 5 });
+        const hasPhoto = (files || []).some(f => f.name === 'avatar.jpg');
+        setProfileComplete(!!(profile.has_video && hasPhoto));
+      }
     } catch (e) {
       setProfileComplete(false);
     }

@@ -244,11 +244,13 @@ export default function SignupScreen({ navigation }) {
         `${SUPABASE_URL}/storage/v1/object/videos/${user.id}/profile.mp4`,
         { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: videoForm }
       );
-      if (vRes.ok) await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);
+      if (vRes.ok) {
+        // signup_complete = true is the permanent signal that this user finished signup.
+        // The CompleteProfileGate only activates when signup_complete = true.
+        await supabase.from('profiles').update({ has_video: true, signup_complete: true }).eq('id', user.id);
+      }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Keep ignoreAuthChangeRef true until user taps "Start swiping"
-      // so no stray auth events can trigger checkProfile before we're ready
       setStep(11);
     } catch (e) {
       ignoreAuthChangeRef.current = false; // release on error so login still works

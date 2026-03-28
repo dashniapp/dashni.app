@@ -31,6 +31,8 @@ export default function CompleteProfileScreen({ navigation }) {
       setHasPhoto(photoExists);
 
       if (profile?.has_video && photoExists) {
+        // Mark signup as complete so future logins pass the gate check
+        await supabase.from('profiles').update({ signup_complete: true }).eq('id', user.id);
         onProfileCompleteRef.current?.();
       }
     } catch (e) {}
