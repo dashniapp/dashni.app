@@ -35,7 +35,12 @@ export default function MatchesScreen({ navigation }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await Promise.all([loadMatches(user), loadLikes(user)]);
+
+      const { data: blockData } = await supabase
+        .from('blocks').select('blocked_id').eq('blocker_id', user.id);
+      const blockedIds = new Set((blockData || []).map(b => b.blocked_id));
+
+      await Promise.all([loadMatches(user, blockedIds), loadLikes(user, blockedIds)]);
       hasLoadedOnce.current = true;
     } catch (e) {
       Alert.alert('Could not load matches', 'Please check your connection and try again.');
@@ -44,7 +49,7 @@ export default function MatchesScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const loadMatches = async (user) => {
+  const loadMatches = async (user, blockedIds = new Set()) => {
     const { data, error } = await supabase
       .from('matches')
       .select('*')
@@ -80,10 +85,10 @@ export default function MatchesScreen({ navigation }) {
         photoUrl: photoData?.publicUrl ? photoData.publicUrl + '?t=1' : null,
       };
     });
-    setMatches(list);
+    setMatches(list.filter(m => !blockedIds.has(m.userId)));
   };
 
-  const loadLikes = async (user) => {
+  const loadLikes = async (user, blockedIds = new Set()) => {
     const { data, error } = await supabase
       .from('likes')
       .select('liker_id, is_super, created_at')
@@ -117,7 +122,7 @@ export default function MatchesScreen({ navigation }) {
         isSuper: l.is_super,
       };
     });
-    setLikes(list);
+    setLikes(list.filter(l => !blockedIds.has(l.userId)));
   };
 
   const renderCard = ({ item, isLike }) => (

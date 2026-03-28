@@ -431,18 +431,18 @@ export default function DiscoverScreen({ navigation, route }) {
 
   // Reload when filters are applied or a user is blocked
   useEffect(() => {
-    if (route.params?.filtersApplied) loadProfiles();
+    if (route.params?.filtersApplied) loadProfiles(true);
   }, [route.params?.filtersApplied]);
 
   useEffect(() => {
-    if (route.params?.reloadFeed) loadProfiles();
+    if (route.params?.reloadFeed) loadProfiles(false);
   }, [route.params?.reloadFeed]);
 
-  const loadProfiles = async () => {
-    setLoading(true);
+  const loadProfiles = async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
 
       const { data: myPhoto } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
       if (myPhoto?.publicUrl) setMyPhotoUrl(myPhoto.publicUrl + '?t=me');
