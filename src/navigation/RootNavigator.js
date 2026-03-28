@@ -28,6 +28,7 @@ import LikedYouScreen from '../screens/LikedYouScreen';
 import BoostScreen from '../screens/BoostScreen';
 import VerificationScreen from '../screens/VerificationScreen';
 import BlockReportScreen from '../screens/BlockReportScreen';
+import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 import LegalScreen from '../screens/LegalScreen';
@@ -225,6 +226,7 @@ function AppStack() {
       <Stack.Screen name="Boost" component={BoostScreen} />
       <Stack.Screen name="Verification" component={VerificationScreen} />
       <Stack.Screen name="BlockReport" component={BlockReportScreen} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <Stack.Screen name="Paywall" component={PaywallScreen} />
       <Stack.Screen name="Premium" component={PremiumScreen} />
       <Stack.Screen name="Legal" component={LegalScreen} />

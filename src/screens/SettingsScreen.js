@@ -83,6 +83,7 @@ export default function SettingsScreen({ navigation }) {
           <ROW icon="edit" label="Edit profile" onPress={() => navigation.navigate('EditProfile')} />
           <ROW icon="video" label="Change video" onPress={() => navigation.navigate('VideoUpload')} />
           <ROW icon="shield" label="Get verified" onPress={() => navigation.navigate('Verification')} />
+          <ROW icon="slash" label="Blocked users" onPress={() => navigation.navigate('BlockedUsers')} />
         </View>
 
         <Text style={styles.sectionLabel}>Premium</Text>
