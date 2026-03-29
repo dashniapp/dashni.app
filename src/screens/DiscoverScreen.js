@@ -4,9 +4,8 @@ import React, {
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Dimensions, ActivityIndicator, Image,
-  StatusBar, FlatList, Alert, Animated,
+  FlatList, Alert, Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -64,7 +63,7 @@ function InlineVideo({ uri, isScreenFocused }) {
 
 // ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
-  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onSuper, onReport,
+  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onSuper, onReport, cardHeight,
 }) {
   const likeScale  = useRef(new Animated.Value(0)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
@@ -111,10 +110,10 @@ const ProfileCard = memo(function ProfileCard({
     ]).start();
   };
 
-  if (!profile) return <View style={styles.card} />;
+  if (!profile) return <View style={[styles.card, cardHeight && { height: cardHeight }]} />;
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, cardHeight && { height: cardHeight }]}>
 
       {/* ── LAYER 1: Background content ── */}
       {currentSlide.type === 'empty' && (
@@ -421,6 +420,7 @@ export default function DiscoverScreen({ navigation, route }) {
   const [matchData, setMatchData]   = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
   const [isAdmin, setIsAdmin]       = useState(false);
+  const [listHeight, setListHeight] = useState(H);
   const flatListRef      = useRef(null);
   const profilesRef      = useRef([]);
   const userIdRef        = useRef(null);
@@ -641,7 +641,7 @@ export default function DiscoverScreen({ navigation, route }) {
       ).then(() => {});
     }
   }, []);
-  const getItemLayout = useCallback((_, i) => ({ length: H, offset: H * i, index: i }), []);
+  const getItemLayout = useCallback((_, i) => ({ length: listHeight, offset: listHeight * i, index: i }), [listHeight]);
 
   const renderItem = useCallback(({ item, index }) => (
     <ProfileCard
@@ -649,6 +649,7 @@ export default function DiscoverScreen({ navigation, route }) {
       profile={item}
       isActive={index === currentIndex}
       isScreenFocused={isScreenFocused}
+      cardHeight={listHeight}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
       onPass={() => {
@@ -658,12 +659,11 @@ export default function DiscoverScreen({ navigation, route }) {
       onSuper={() => handleLike(item, index, true)}
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
-  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused]);
+  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight]);
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={colors.accent} />
         <Text style={styles.loadingText}>Finding profiles...</Text>
       </View>
@@ -673,35 +673,28 @@ export default function DiscoverScreen({ navigation, route }) {
   if (!profiles.length) {
     return (
       <View style={[styles.safe, { backgroundColor: colors.bg }]}>
-        <StatusBar barStyle="light-content" />
-        <SafeAreaView edges={['top']}>
-          <View style={styles.staticHeader}>
-            <View style={styles.logoRow}>
-              <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-              <Text style={styles.logo}>Dashni</Text>
-            </View>
-            <View style={styles.headerRight}>
-              {isAdmin && (
-                <>
-                  <TouchableOpacity style={styles.iconBtn} onPress={rewindOne}>
-                    <Feather name="rotate-ccw" size={16} color="#ffd166" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.iconBtn} onPress={deleteCurrentProfile}>
-                    <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
-                      <Feather name="settings" size={16} color={colors.accent} />
-                    </Animated.View>
-                  </TouchableOpacity>
-                </>
-              )}
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={() => navigation.navigate('Filters')}
-              >
-                <Feather name="sliders" size={16} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
+        <View style={styles.staticHeader}>
+          <View style={styles.headerRight}>
+            {isAdmin && (
+              <>
+                <TouchableOpacity style={styles.iconBtn} onPress={rewindOne}>
+                  <Feather name="rotate-ccw" size={16} color="#ffd166" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconBtn} onPress={deleteCurrentProfile}>
+                  <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+                    <Feather name="settings" size={16} color={colors.accent} />
+                  </Animated.View>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('Filters')}
+            >
+              <Feather name="sliders" size={16} color={colors.textPrimary} />
+            </TouchableOpacity>
           </View>
-        </SafeAreaView>
+        </View>
         <View style={styles.emptyWrap}>
           <Text style={{ fontSize: 60 }}>💘</Text>
           <Text style={styles.emptyTitle}>No profiles yet</Text>
@@ -724,6 +717,7 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled
+        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
         decelerationRate={0.85}
         disableIntervalMomentum={true}
         showsVerticalScrollIndicator={false}
@@ -747,12 +741,8 @@ export default function DiscoverScreen({ navigation, route }) {
           }
         }}
       />
-      <SafeAreaView edges={['top']} style={styles.headerAbsolute} pointerEvents="box-none">
+      <View style={styles.headerAbsolute} pointerEvents="box-none">
         <View style={styles.staticHeader}>
-          <View style={styles.logoRow}>
-            <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-            <Text style={styles.logo}>Dashni</Text>
-          </View>
           <View style={styles.headerRight}>
             {isAdmin && (
               <>
@@ -774,7 +764,7 @@ export default function DiscoverScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
       <MatchModal
         matchData={matchData}
         myPhotoUrl={myPhotoUrl}
@@ -806,11 +796,8 @@ const styles = StyleSheet.create({
   emptyBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   headerAbsolute: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 },
-  staticHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
+  staticHeader:   { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
   headerRight:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoRow:        { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImg:        { width: 28, height: 28, borderRadius: 8 },
-  logo:           { fontSize: 20, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
   iconBtn:        { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
   // Card

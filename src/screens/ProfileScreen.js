@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Image, Alert, ActivityIndicator, Dimensions, Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -298,17 +297,13 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.safe}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
+      <View style={styles.headerSafe}>
         <View style={styles.header}>
-          <View style={styles.logoRow}>
-            <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-            <Text style={styles.logo}>Dashni</Text>
-          </View>
           <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
             <Feather name="settings" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
@@ -664,10 +659,7 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   headerSafe: { backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.border },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImg: { width: 30, height: 30, borderRadius: 8 },
-  logo: { fontSize: 22, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
+  header: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
   iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingBottom: 20 },
   heroWrap: { width: W, height: H * 0.52, position: 'relative', overflow: 'hidden', backgroundColor: '#111' },

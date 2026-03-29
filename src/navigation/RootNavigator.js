@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
+  Image, StatusBar,
 } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -196,22 +197,38 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
   );
 }
 
+// Rendered once above all tabs — never unmounts, never flickers on tab switch
+function PersistentAppHeader() {
+  return (
+    <SafeAreaView edges={['top']} style={styles.persistentSafe}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.persistentBar}>
+        <Image source={require('../../assets/icon.png')} style={styles.persistentLogoImg} />
+        <Text style={styles.persistentLogoText}>Dashni</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 function AppTabs() {
   return (
-    <Tab.Navigator
-      tabBar={props => <DynamicIslandTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      {TABS.map(tab => {
-        const Screen = {
-          Discover: DiscoverScreen,
-          Matches: MatchesScreen,
-          Messages: MessagesScreen,
-          Profile: ProfileScreen,
-        }[tab.name];
-        return <Tab.Screen key={tab.name} name={tab.name} component={Screen} />;
-      })}
-    </Tab.Navigator>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <PersistentAppHeader />
+      <Tab.Navigator
+        tabBar={props => <DynamicIslandTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+        {TABS.map(tab => {
+          const Screen = {
+            Discover: DiscoverScreen,
+            Matches: MatchesScreen,
+            Messages: MessagesScreen,
+            Profile: ProfileScreen,
+          }[tab.name];
+          return <Tab.Screen key={tab.name} name={tab.name} component={Screen} />;
+        })}
+      </Tab.Navigator>
+    </View>
   );
 }
 
@@ -320,6 +337,12 @@ export default function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
+  // Persistent header (renders once, above all tabs)
+  persistentSafe: { backgroundColor: colors.bg },
+  persistentBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 8 },
+  persistentLogoImg: { width: 24, height: 24, borderRadius: 6 },
+  persistentLogoText: { fontSize: 18, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
+
   tabBarWrap: {
     position: 'absolute',
     bottom: 24,

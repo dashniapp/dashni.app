@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Dimensions, Image, ActivityIndicator, Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -182,13 +181,7 @@ export default function MatchesScreen({ navigation }) {
   const currentData = tab === 'matches' ? matches : likes;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-          <Text style={styles.logo}>Dashni</Text>
-        </View>
-      </View>
+    <View style={styles.safe}>
 
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -238,16 +231,12 @@ export default function MatchesScreen({ navigation }) {
           renderItem={({ item }) => renderCard({ item, isLike: tab === 'likes' })}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: 18, paddingVertical: 12 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImg: { width: 30, height: 30, borderRadius: 8 },
-  logo: { fontSize: 22, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
   tabs: { flexDirection: 'row', marginHorizontal: 14, marginBottom: 14, backgroundColor: colors.bgSurface, borderRadius: radius.lg, padding: 4, gap: 4 },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: radius.md },
   tabActive: { backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border },

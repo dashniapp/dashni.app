@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
@@ -172,13 +171,7 @@ export default function MessagesScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-          <Text style={styles.logo}>Dashni</Text>
-        </View>
-      </View>
+    <View style={styles.safe}>
       <Text style={styles.sectionLabel}>Messages</Text>
 
       {loading ? (
@@ -200,16 +193,12 @@ export default function MessagesScreen({ navigation }) {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: 18, paddingVertical: 12 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImg: { width: 30, height: 30, borderRadius: 8 },
-  logo: { fontSize: 22, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
   sectionLabel: { color: colors.textMuted, fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: 18, marginBottom: 6 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
