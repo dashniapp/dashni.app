@@ -8,7 +8,7 @@ import { clearMessagesBadgeRef } from '../navigation/refs';
 export default function MessagesScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [myId, setMyId] = useState(null);
+
   const hasLoadedOnce = useRef(false);
 
   const realtimeRef = React.useRef(null);
@@ -54,8 +54,6 @@ export default function MessagesScreen({ navigation }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      setMyId(user.id);
-
       // Get all messages involving this user
       const { data: msgs } = await supabase
         .from('messages')
