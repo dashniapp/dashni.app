@@ -673,14 +673,13 @@ export default function DiscoverScreen({ navigation, route }) {
     }
   }, [currentIndex]);
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
-  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+  // Fires exactly once after each swipe animation completes — no cascade risk
+  const onMomentumScrollEnd = useCallback((e) => {
     if (suppressViewability.current) return;
-    const idx = viewableItems[0]?.index;
-    if (idx == null) return;
-    if (idx < currentIndexRef.current) return; // never go backward
+    const idx = Math.round(e.nativeEvent.contentOffset.y / listHeightRef.current);
+    if (idx === currentIndexRef.current) return;
 
-    // Track seen profile (skip the end-of-feed sentinel)
+    // Track seen profile (skip end sentinel)
     const profile = profilesRef.current[idx];
     if (profile && !profile._isEnd && userIdRef.current && !seenRef.current.has(profile.id)) {
       seenRef.current.add(profile.id);
@@ -823,8 +822,7 @@ export default function DiscoverScreen({ navigation, route }) {
         maxToRenderPerBatch={1}
         windowSize={3}
         removeClippedSubviews
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
+        onMomentumScrollEnd={onMomentumScrollEnd}
       />
       <View style={styles.headerAbsolute} pointerEvents="box-none">
         <View style={[styles.staticHeader, { paddingTop: insets.top + 46 }]}>
