@@ -9,6 +9,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
+import {
+  onProfileCompleteRef, ignoreAuthChangeRef, setSignupInProgressRef,
+  clearLikesBadgeRef, clearMessagesBadgeRef,
+} from './refs';
 
 // Screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -37,14 +41,6 @@ import LegalScreen from '../screens/LegalScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-// Module-level refs for signup flow
-export const onProfileCompleteRef   = { current: null };
-export const ignoreAuthChangeRef    = { current: false };
-export const setSignupInProgressRef = { current: null }; // locks navigator to AuthStack during signup
-
-// Badge-clearing refs — called by MatchesScreen/MessagesScreen on focus
-export const clearLikesBadgeRef    = { current: null };
-export const clearMessagesBadgeRef = { current: null };
 
 const TABS = [
   { name: 'Discover', icon: 'play-circle', lib: 'feather' },

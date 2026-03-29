@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndi
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
-import { clearMessagesBadgeRef } from '../navigation/RootNavigator';
+import { clearMessagesBadgeRef } from '../navigation/refs';
 
 export default function MessagesScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);

@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { colors, radius } from '../theme';
-import { ignoreAuthChangeRef, onProfileCompleteRef, setSignupInProgressRef } from '../navigation/RootNavigator';
+import { ignoreAuthChangeRef, onProfileCompleteRef, setSignupInProgressRef } from '../navigation/refs';
 
 const { width: W, height: H } = Dimensions.get('window');
 

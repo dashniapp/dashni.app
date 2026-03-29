@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import { useFocusEffect } from '@react-navigation/native';
-import { onProfileCompleteRef } from '../navigation/RootNavigator';
+import { onProfileCompleteRef } from '../navigation/refs';
 
 export default function CompleteProfileScreen({ navigation }) {
   const [hasPhoto, setHasPhoto] = useState(false);
