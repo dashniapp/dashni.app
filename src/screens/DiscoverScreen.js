@@ -418,35 +418,32 @@ export default function DiscoverScreen({ navigation, route }) {
   const [matchData, setMatchData]   = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
   const [isAdmin, setIsAdmin]       = useState(false);
-  const [listHeight, setListHeight] = useState(H);
-  const flatListRef           = useRef(null);
-  const profilesRef           = useRef([]);
-  const userIdRef             = useRef(null);
-  const seenRef               = useRef(new Set());
-  const spinAnim              = useRef(new Animated.Value(0)).current;
-  const currentIndexRef       = useRef(0);
-  const isAdminRef            = useRef(false);
-  const listHeightRef         = useRef(H);
-  const suppressViewability   = useRef(false);
+  const flatListRef         = useRef(null);
+  const profilesRef         = useRef([]);
+  const userIdRef           = useRef(null);
+  const seenRef             = useRef(new Set());
+  const spinAnim            = useRef(new Animated.Value(0)).current;
+  const currentIndexRef     = useRef(0);
+  const isAdminRef          = useRef(false);
+  const suppressScroll      = useRef(false);
 
   useEffect(() => {
     loadProfiles();
     const focusSub = navigation.addListener('focus', () => {
       setIsScreenFocused(true);
       requestAnimationFrame(() => {
-        // Snap back to exact position before allowing viewability events again
         if (flatListRef.current && profilesRef.current.length > 0) {
           flatListRef.current.scrollToOffset({
-            offset: currentIndexRef.current * listHeightRef.current,
+            offset: currentIndexRef.current * H,
             animated: false,
           });
         }
-        suppressViewability.current = false;
+        suppressScroll.current = false;
       });
     });
     const blurSub = navigation.addListener('blur', () => {
       setIsScreenFocused(false);
-      suppressViewability.current = true;
+      suppressScroll.current = true;
     });
     return () => { focusSub(); blurSub(); };
   }, []);
@@ -480,15 +477,17 @@ export default function DiscoverScreen({ navigation, route }) {
       if (!user) { setLoading(false); return; }
 
       userIdRef.current = user.id;
-      setIsAdmin(user.email === 'bjeshkes@gmail.com');
 
       const { data: myPhoto } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
       if (myPhoto?.publicUrl) setMyPhotoUrl(myPhoto.publicUrl + '?t=me');
 
       const { data: me } = await supabase
         .from('profiles')
-        .select('gender, diaspora_mode, looking_for_gender')
+        .select('gender, diaspora_mode, looking_for_gender, is_admin')
         .eq('id', user.id).single();
+
+      const adminUser = me?.is_admin === true || user.email === 'bjeshkes@gmail.com';
+      setIsAdmin(adminUser);
 
       const { data: blockData } = await supabase
         .from('blocks').select('blocked_id').eq('blocker_id', user.id);
@@ -515,8 +514,7 @@ export default function DiscoverScreen({ navigation, route }) {
       if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
       if (filters.diaspora) q = q.eq('diaspora_mode', true);
-      const adminMode = user.email === 'bjeshkes@gmail.com';
-      const excludeIds = [...new Set([...blockedIds, ...likedIds, ...(adminMode ? [] : passedIds)])];
+      const excludeIds = [...new Set([...blockedIds, ...likedIds, ...(adminUser ? [] : passedIds)])];
       if (excludeIds.length > 0)
         q = q.not('id', 'in', `(${excludeIds.join(',')})`);
 
@@ -675,8 +673,8 @@ export default function DiscoverScreen({ navigation, route }) {
 
   // Fires exactly once after each swipe animation completes — no cascade risk
   const onMomentumScrollEnd = useCallback((e) => {
-    if (suppressViewability.current) return;
-    const idx = Math.round(e.nativeEvent.contentOffset.y / listHeightRef.current);
+    if (suppressScroll.current) return;
+    const idx = Math.round(e.nativeEvent.contentOffset.y / H);
     if (idx === currentIndexRef.current) return;
 
     // Track seen profile (skip end sentinel)
@@ -704,12 +702,12 @@ export default function DiscoverScreen({ navigation, route }) {
       setCurrentIndex(idx);
     }
   }, []);
-  const getItemLayout = useCallback((_, i) => ({ length: listHeight, offset: listHeight * i, index: i }), [listHeight]);
+  const getItemLayout = useCallback((_, i) => ({ length: H, offset: H * i, index: i }), []);
 
   const renderItem = useCallback(({ item, index }) => {
     if (item._isEnd) {
       return (
-        <View style={[styles.card, listHeight && { height: listHeight }, styles.endCard]}>
+        <View style={[styles.card, { height: H }, styles.endCard]}>
           <Text style={styles.endEmoji}>🎉</Text>
           <Text style={styles.endTitle}>You're all caught up!</Text>
           <Text style={styles.endSub}>No more new profiles right now.{'\n'}Check back soon!</Text>
@@ -726,7 +724,7 @@ export default function DiscoverScreen({ navigation, route }) {
       profile={item}
       isActive={index === currentIndex}
       isScreenFocused={isScreenFocused}
-      cardHeight={listHeight}
+      cardHeight={H}
       dotsTop={insets.top + 44}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
@@ -751,7 +749,7 @@ export default function DiscoverScreen({ navigation, route }) {
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
     );
-  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight, isAdmin, advanceNonAdmin]);
+  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin]);
 
   if (loading) {
     return (
@@ -809,19 +807,17 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled={true}
+        snapToAlignment="start"
         decelerationRate="fast"
         scrollEventThrottle={16}
-        onLayout={(e) => {
-          const h = e.nativeEvent.layout.height;
-          setListHeight(h);
-          listHeightRef.current = h;
-        }}
+        bounces={false}
+        overScrollMode="never"
         showsVerticalScrollIndicator={false}
         getItemLayout={getItemLayout}
         initialNumToRender={2}
-        maxToRenderPerBatch={1}
+        maxToRenderPerBatch={2}
         windowSize={3}
-        removeClippedSubviews
+        removeClippedSubviews={true}
         onMomentumScrollEnd={onMomentumScrollEnd}
       />
       <View style={styles.headerAbsolute} pointerEvents="box-none">
@@ -884,7 +880,7 @@ const styles = StyleSheet.create({
   iconBtn:        { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
   // Card
-  card:         { width: W, height: H, backgroundColor: '#111' },
+  card:         { width: W, height: H, backgroundColor: '#000' },
   initialWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
   initial:      { fontSize: 100, fontWeight: '800', color: colors.accent, opacity: 0.15 },
 
