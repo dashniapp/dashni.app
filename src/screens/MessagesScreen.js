@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import { clearMessagesBadgeRef } from '../navigation/refs';
 
 export default function MessagesScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -169,7 +171,7 @@ export default function MessagesScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top }]}>
       <Text style={styles.sectionLabel}>Messages</Text>
 
       {loading ? (

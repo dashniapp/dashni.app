@@ -8,6 +8,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
@@ -51,6 +52,7 @@ function VideoPlayerModal({ uri, visible, onClose }) {
 }
 
 export default function ProfileScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
   const [diasporaMode, setDiasporaMode] = useState(false);
@@ -295,10 +297,10 @@ export default function ProfileScreen({ navigation }) {
   const completeness = [profile?.name, profile?.bio, profile?.location, photoUrl, hasVideo].filter(Boolean).length * 20;
 
   return (
-    <View style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top }]}>
       {/* Settings button floats at top-right — no extra header row so height matches other tabs */}
       <TouchableOpacity
-        style={styles.settingsBtn}
+        style={[styles.settingsBtn, { top: insets.top + 10 }]}
         onPress={() => navigation.navigate('Settings')}
         activeOpacity={0.8}
       >

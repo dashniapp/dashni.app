@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import { clearLikesBadgeRef } from '../navigation/refs';
@@ -13,6 +14,7 @@ const { width: W } = Dimensions.get('window');
 const CARD_W = (W - 14 * 2 - 10) / 2;
 
 export default function MatchesScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [matches, setMatches] = useState([]);
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +183,7 @@ export default function MatchesScreen({ navigation }) {
   const currentData = tab === 'matches' ? matches : likes;
 
   return (
-    <View style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top }]}>
 
       {/* Tabs */}
       <View style={styles.tabs}>
