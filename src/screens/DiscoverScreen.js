@@ -427,7 +427,7 @@ export default function DiscoverScreen({ navigation, route }) {
   const seenRef          = useRef(new Set());
   const spinAnim         = useRef(new Animated.Value(0)).current;
   const currentIndexRef  = useRef(0);
-  const dragStartY       = useRef(0);
+  const isAdminRef       = useRef(false);
 
   useEffect(() => {
     loadProfiles();
@@ -436,8 +436,9 @@ export default function DiscoverScreen({ navigation, route }) {
     return () => { focusSub(); blurSub(); };
   }, []);
 
-  // Keep currentIndexRef in sync for use inside scroll handlers (avoids stale closures)
+  // Keep refs in sync so scroll callbacks never read stale state
   useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+  useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -628,10 +629,9 @@ export default function DiscoverScreen({ navigation, route }) {
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     const idx = viewableItems[0]?.index;
     if (idx == null) return;
-    // Ignore backward movement caused by a blocked drag — only commit forward progress
-    if (idx < currentIndexRef.current) return;
-    setCurrentIndex(idx);
-    currentIndexRef.current = idx;
+    if (idx < currentIndexRef.current) return; // never go backward
+
+    // Track seen profile
     const profile = profilesRef.current[idx];
     if (profile && userIdRef.current && !seenRef.current.has(profile.id)) {
       seenRef.current.add(profile.id);
@@ -639,6 +639,22 @@ export default function DiscoverScreen({ navigation, route }) {
         { user_id: userIdRef.current, profile_id: profile.id },
         { onConflict: 'user_id,profile_id' }
       ).then(() => {});
+    }
+
+    if (!isAdminRef.current && idx > 0) {
+      // Trim everything before this card — nothing left above to scroll back to
+      const trimmed = profilesRef.current.slice(idx);
+      profilesRef.current = trimmed;
+      currentIndexRef.current = 0;
+      setCurrentIndex(0);
+      setProfiles(trimmed);
+      // Reset scroll position to 0 after data update so FlatList reflects the new array
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      });
+    } else {
+      currentIndexRef.current = idx;
+      setCurrentIndex(idx);
     }
   }, []);
   const getItemLayout = useCallback((_, i) => ({ length: listHeight, offset: listHeight * i, index: i }), [listHeight]);
@@ -716,10 +732,11 @@ export default function DiscoverScreen({ navigation, route }) {
         data={profiles}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        pagingEnabled
-        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
-        decelerationRate={0.85}
+        snapToInterval={listHeight}
+        snapToAlignment="start"
+        decelerationRate="fast"
         disableIntervalMomentum={true}
+        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
         showsVerticalScrollIndicator={false}
         getItemLayout={getItemLayout}
         initialNumToRender={2}
@@ -728,18 +745,6 @@ export default function DiscoverScreen({ navigation, route }) {
         removeClippedSubviews
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
-        onScrollBeginDrag={(e) => {
-          dragStartY.current = e.nativeEvent.contentOffset.y;
-        }}
-        onScrollEndDrag={(e) => {
-          // If user dragged downward (backward) — offset decreased — snap back
-          if (e.nativeEvent.contentOffset.y < dragStartY.current) {
-            flatListRef.current?.scrollToOffset({
-              offset: currentIndexRef.current * H,
-              animated: true,
-            });
-          }
-        }}
       />
       <View style={styles.headerAbsolute} pointerEvents="box-none">
         <View style={styles.staticHeader}>
