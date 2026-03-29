@@ -7,6 +7,7 @@ import {
   FlatList, Alert, Animated,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons, AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -64,7 +65,7 @@ function InlineVideo({ uri, isScreenFocused }) {
 
 // ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
-  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onMessage, onReport, cardHeight,
+  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onMessage, onReport, cardHeight, dotsTop,
 }) {
   const likeScale  = useRef(new Animated.Value(0)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
@@ -75,12 +76,8 @@ const ProfileCard = memo(function ProfileCard({
     if (!isActive) setSlideIndex(0);
   }, [isActive]);
 
-  // Build slides array: photo first, then video, then nothing else for now
-  // Keep it simple - extra photos caused bugs
-  const slides = [];
-  if (profile?.photoUrl)  slides.push({ type: 'photo', url: profile.photoUrl });
-  if (profile?.videoUrl)  slides.push({ type: 'video', url: profile.videoUrl });
-  if (slides.length === 0) slides.push({ type: 'empty' });
+  // Use pre-built mediaSlides from loadProfiles (all photos + video)
+  const slides = profile?.mediaSlides?.length ? profile.mediaSlides : [{ type: 'empty' }];
 
   const totalSlides = slides.length;
   const currentSlide = slides[slideIndex] || slides[0];
@@ -157,7 +154,7 @@ const ProfileCard = memo(function ProfileCard({
 
       {/* ── LAYER 3: Dots (story bar style at top) ── */}
       {totalSlides > 1 && (
-        <View style={styles.dotsRow} pointerEvents="none">
+        <View style={[styles.dotsRow, { top: dotsTop ?? 56 }]} pointerEvents="none">
           {slides.map((s, i) => (
             <View
               key={i}
@@ -176,7 +173,7 @@ const ProfileCard = memo(function ProfileCard({
 
       {/* ── LAYER 4: VIDEO badge when on video slide ── */}
       {currentSlide.type === 'video' && (
-        <View style={styles.videoBadge} pointerEvents="none">
+        <View style={[styles.videoBadge, { top: (dotsTop ?? 56) + 14 }]} pointerEvents="none">
           <View style={styles.videoBadgeDot} />
           <Text style={styles.videoBadgeText}>VIDEO</Text>
         </View>
@@ -414,6 +411,7 @@ const matchStyles = StyleSheet.create({
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function DiscoverScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
   const [profiles, setProfiles]     = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading]       = useState(true);
@@ -520,12 +518,36 @@ export default function DiscoverScreen({ navigation, route }) {
       const { data } = await q.limit(50);
 
       if (data?.length) {
-        const enriched = data.map(p => {
-          const { data: ph } = supabase.storage
-            .from('avatars').getPublicUrl(`${p.id}/avatar.jpg`);
+        const enriched = await Promise.all(data.map(async p => {
+          // List all photos in this user's avatars folder
+          const { data: photoFiles } = await supabase.storage
+            .from('avatars').list(p.id, { limit: 20 });
+
+          const photoUrls = (photoFiles || [])
+            .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f.name))
+            .sort((a, b) => {
+              if (a.name === 'avatar.jpg') return -1;
+              if (b.name === 'avatar.jpg') return 1;
+              return a.name.localeCompare(b.name);
+            })
+            .map(f => {
+              const { data: u } = supabase.storage
+                .from('avatars').getPublicUrl(`${p.id}/${f.name}`);
+              return u?.publicUrl ? `${u.publicUrl}?t=${p.id}_${f.name}` : null;
+            })
+            .filter(Boolean);
 
           const { data: vi } = supabase.storage
             .from('videos').getPublicUrl(`${p.id}/profile.mp4`);
+          const videoUrl = p.has_video && vi?.publicUrl
+            ? `${vi.publicUrl}?v=${Date.now()}` : null;
+
+          // Build ordered slides: all photos first, then video
+          const mediaSlides = [
+            ...photoUrls.map(url => ({ type: 'photo', url })),
+            ...(videoUrl ? [{ type: 'video', url: videoUrl }] : []),
+          ];
+          if (mediaSlides.length === 0) mediaSlides.push({ type: 'empty' });
 
           let locationDisplay = p.location || '';
           if (p.hometown && p.location && p.hometown !== p.location) {
@@ -534,12 +556,6 @@ export default function DiscoverScreen({ navigation, route }) {
             locationDisplay = p.hometown;
           }
 
-          const photoUrl  = ph?.publicUrl
-            ? `${ph.publicUrl}?t=${p.id}` : null;
-          const videoUrl  = p.has_video && vi?.publicUrl
-            ? `${vi.publicUrl}?v=${Date.now()}` : null;
-
-
           return {
             ...p,
             initials: p.name?.[0]?.toUpperCase() ?? '?',
@@ -547,12 +563,13 @@ export default function DiscoverScreen({ navigation, route }) {
               ? p.interests.split(',').map(t => t.trim()).filter(Boolean)
               : [],
             verified: p.verification_status === 'verified',
-            photoUrl,
+            photoUrl: photoUrls[0] || null,
             videoUrl,
+            mediaSlides,
             locationDisplay,
             isDiaspora: p.diaspora_mode || false,
           };
-        });
+        }));
 
         const shuffled = enriched.sort(() => Math.random() - 0.5);
         profilesRef.current = shuffled;
@@ -678,6 +695,7 @@ export default function DiscoverScreen({ navigation, route }) {
       isActive={index === currentIndex}
       isScreenFocused={isScreenFocused}
       cardHeight={listHeight}
+      dotsTop={insets.top + 44}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
       onPass={() => {
@@ -710,7 +728,7 @@ export default function DiscoverScreen({ navigation, route }) {
   if (!profiles.length) {
     return (
       <View style={[styles.safe, { backgroundColor: colors.bg }]}>
-        <View style={styles.staticHeader}>
+        <View style={[styles.staticHeader, { paddingTop: insets.top + 46 }]}>
           <View style={styles.headerRight}>
             {isAdmin && (
               <>
@@ -768,7 +786,7 @@ export default function DiscoverScreen({ navigation, route }) {
         viewabilityConfig={viewabilityConfig}
       />
       <View style={styles.headerAbsolute} pointerEvents="box-none">
-        <View style={styles.staticHeader}>
+        <View style={[styles.staticHeader, { paddingTop: insets.top + 46 }]}>
           <View style={styles.headerRight}>
             {isAdmin && (
               <>
@@ -838,7 +856,6 @@ const styles = StyleSheet.create({
   // Story-style dots at top
   dotsRow: {
     position: 'absolute',
-    top: 56,
     left: 16,
     right: 16,
     flexDirection: 'row',
@@ -854,7 +871,7 @@ const styles = StyleSheet.create({
   // Video
   videoOverlay:   { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
   videoPlayBtn:   { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
-  videoBadge:     { position: 'absolute', top: 70, left: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.6)', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10, zIndex: 10 },
+  videoBadge:     { position: 'absolute', left: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.6)', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10, zIndex: 10 },
   videoBadgeDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   videoBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
 
