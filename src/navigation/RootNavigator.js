@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
-  Image, StatusBar,
+  Image,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -197,7 +198,7 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
 function PersistentAppHeader() {
   return (
     <SafeAreaView edges={['top']} style={styles.persistentSafe}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
       <View style={styles.persistentBar}>
         <Image source={require('../../assets/icon.png')} style={styles.persistentLogoImg} />
         <Text style={styles.persistentLogoText}>Dashni</Text>
