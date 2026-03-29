@@ -133,8 +133,7 @@ export default function ProfileScreen({ navigation }) {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [3, 4],
+      allowsEditing: false,
       quality: 0.5,
       base64: true,
     });
@@ -176,7 +175,7 @@ export default function ProfileScreen({ navigation }) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return Alert.alert('Permission needed');
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'], allowsEditing: true, quality: 0.4, videoMaxDuration: 15,
+      mediaTypes: ['videos'], allowsEditing: false, quality: 0.4, videoMaxDuration: 15,
     });
     if (result.canceled) return;
     if (result.assets[0].duration && result.assets[0].duration > 15000) {
@@ -217,7 +216,7 @@ export default function ProfileScreen({ navigation }) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission needed'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], allowsEditing: true, aspect: [3, 4], quality: 0.5,
+      mediaTypes: ['images'], allowsEditing: false, quality: 0.5,
     });
     if (result.canceled) return;
     setUploadingSlot(slot);

@@ -42,7 +42,7 @@ export default function VideoUploadScreen({ navigation }) {
     if (status !== 'granted') { Alert.alert('Permission needed', 'Please allow access to your videos.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'],
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.3,
       videoMaxDuration: 15,
     });
@@ -61,7 +61,7 @@ export default function VideoUploadScreen({ navigation }) {
     if (status !== 'granted') { Alert.alert('Permission needed', 'Please allow camera access.'); return; }
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['videos'],
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.3,
       videoMaxDuration: 15,
     });

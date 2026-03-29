@@ -268,8 +268,8 @@ export default function SignupScreen({ navigation }) {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') return Alert.alert('Permission needed');
     const result = fromCamera
-      ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [3, 4], quality: 0.7 })
-      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [3, 4], quality: 0.7 });
+      ? await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.7 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 0.7 });
     if (!result.canceled) setPhotoUri(result.assets[0].uri);
   };
 
@@ -280,8 +280,8 @@ export default function SignupScreen({ navigation }) {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') return Alert.alert('Permission needed');
     const result = fromCamera
-      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 15 })
-      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: true, quality: 0.5, videoMaxDuration: 15 });
+      ? await ImagePicker.launchCameraAsync({ mediaTypes: ['videos'], allowsEditing: false, quality: 0.5, videoMaxDuration: 15 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsEditing: false, quality: 0.5, videoMaxDuration: 15 });
     if (result.canceled) return;
     const asset = result.assets[0];
     if (asset.duration && asset.duration > 15000) {

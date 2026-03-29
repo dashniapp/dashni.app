@@ -67,7 +67,7 @@ export default function EditProfileScreen({ navigation }) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return Alert.alert('Permission needed');
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'], allowsEditing: true, quality: 0.4, videoMaxDuration: 15,
+      mediaTypes: ['videos'], allowsEditing: false, quality: 0.4, videoMaxDuration: 15,
     });
     if (!result.canceled) {
       if (result.assets[0].duration && result.assets[0].duration > 15000) {
