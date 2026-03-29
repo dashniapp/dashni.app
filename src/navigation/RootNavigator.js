@@ -335,7 +335,7 @@ export default function RootNavigator() {
 
 const styles = StyleSheet.create({
   // Persistent header (renders once, above all tabs)
-  persistentSafe: { backgroundColor: colors.bg },
+  persistentSafe: {},
   persistentBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 8 },
   persistentLogoImg: { width: 24, height: 24, borderRadius: 6 },
   persistentLogoText: { fontSize: 18, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },

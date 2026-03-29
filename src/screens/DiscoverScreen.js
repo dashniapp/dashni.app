@@ -432,7 +432,18 @@ export default function DiscoverScreen({ navigation, route }) {
 
   useEffect(() => {
     loadProfiles();
-    const focusSub = navigation.addListener('focus', () => setIsScreenFocused(true));
+    const focusSub = navigation.addListener('focus', () => {
+      setIsScreenFocused(true);
+      // Unstick FlatList if a tab switch happened mid-swipe
+      requestAnimationFrame(() => {
+        if (flatListRef.current && profilesRef.current.length > 0) {
+          flatListRef.current.scrollToIndex({
+            index: Math.min(currentIndexRef.current, profilesRef.current.length - 1),
+            animated: false,
+          });
+        }
+      });
+    });
     const blurSub  = navigation.addListener('blur',  () => setIsScreenFocused(false));
     return () => { focusSub(); blurSub(); };
   }, []);
