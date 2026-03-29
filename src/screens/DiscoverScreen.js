@@ -420,29 +420,35 @@ export default function DiscoverScreen({ navigation, route }) {
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
   const [isAdmin, setIsAdmin]       = useState(false);
   const [listHeight, setListHeight] = useState(H);
-  const flatListRef      = useRef(null);
-  const profilesRef      = useRef([]);
-  const userIdRef        = useRef(null);
-  const seenRef          = useRef(new Set());
-  const spinAnim         = useRef(new Animated.Value(0)).current;
-  const currentIndexRef  = useRef(0);
-  const isAdminRef       = useRef(false);
+  const flatListRef           = useRef(null);
+  const profilesRef           = useRef([]);
+  const userIdRef             = useRef(null);
+  const seenRef               = useRef(new Set());
+  const spinAnim              = useRef(new Animated.Value(0)).current;
+  const currentIndexRef       = useRef(0);
+  const isAdminRef            = useRef(false);
+  const listHeightRef         = useRef(H);
+  const suppressViewability   = useRef(false);
 
   useEffect(() => {
     loadProfiles();
     const focusSub = navigation.addListener('focus', () => {
       setIsScreenFocused(true);
-      // Unstick FlatList if a tab switch happened mid-swipe
       requestAnimationFrame(() => {
+        // Snap back to exact position before allowing viewability events again
         if (flatListRef.current && profilesRef.current.length > 0) {
-          flatListRef.current.scrollToIndex({
-            index: Math.min(currentIndexRef.current, profilesRef.current.length - 1),
+          flatListRef.current.scrollToOffset({
+            offset: currentIndexRef.current * listHeightRef.current,
             animated: false,
           });
         }
+        suppressViewability.current = false;
       });
     });
-    const blurSub  = navigation.addListener('blur',  () => setIsScreenFocused(false));
+    const blurSub = navigation.addListener('blur', () => {
+      setIsScreenFocused(false);
+      suppressViewability.current = true;
+    });
     return () => { focusSub(); blurSub(); };
   }, []);
 
@@ -572,8 +578,9 @@ export default function DiscoverScreen({ navigation, route }) {
         }));
 
         const shuffled = enriched.sort(() => Math.random() - 0.5);
-        profilesRef.current = shuffled;
-        setProfiles(shuffled);
+        const withEnd = [...shuffled, { id: '__end__', _isEnd: true }];
+        profilesRef.current = withEnd;
+        setProfiles(withEnd);
         setCurrentIndex(0);
       } else {
         setProfiles([]);
@@ -656,13 +663,14 @@ export default function DiscoverScreen({ navigation, route }) {
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    if (suppressViewability.current) return;
     const idx = viewableItems[0]?.index;
     if (idx == null) return;
     if (idx < currentIndexRef.current) return; // never go backward
 
-    // Track seen profile
+    // Track seen profile (skip the end-of-feed sentinel)
     const profile = profilesRef.current[idx];
-    if (profile && userIdRef.current && !seenRef.current.has(profile.id)) {
+    if (profile && !profile._isEnd && userIdRef.current && !seenRef.current.has(profile.id)) {
       seenRef.current.add(profile.id);
       supabase.from('passes').upsert(
         { user_id: userIdRef.current, profile_id: profile.id },
@@ -688,7 +696,21 @@ export default function DiscoverScreen({ navigation, route }) {
   }, []);
   const getItemLayout = useCallback((_, i) => ({ length: listHeight, offset: listHeight * i, index: i }), [listHeight]);
 
-  const renderItem = useCallback(({ item, index }) => (
+  const renderItem = useCallback(({ item, index }) => {
+    if (item._isEnd) {
+      return (
+        <View style={[styles.card, listHeight && { height: listHeight }, styles.endCard]}>
+          <Text style={styles.endEmoji}>🎉</Text>
+          <Text style={styles.endTitle}>You're all caught up!</Text>
+          <Text style={styles.endSub}>No more new profiles right now.{'\n'}Check back soon!</Text>
+          <TouchableOpacity style={styles.endBtn} onPress={() => loadProfiles(false)}>
+            <Feather name="refresh-cw" size={14} color="#fff" />
+            <Text style={styles.endBtnText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
     <ProfileCard
       key={item.id}
       profile={item}
@@ -714,7 +736,8 @@ export default function DiscoverScreen({ navigation, route }) {
       }}
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
-  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight]);
+    );
+  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight]);
 
   if (loading) {
     return (
@@ -725,7 +748,7 @@ export default function DiscoverScreen({ navigation, route }) {
     );
   }
 
-  if (!profiles.length) {
+  if (profiles.filter(p => !p._isEnd).length === 0) {
     return (
       <View style={[styles.safe, { backgroundColor: colors.bg }]}>
         <View style={[styles.staticHeader, { paddingTop: insets.top + 46 }]}>
@@ -775,7 +798,11 @@ export default function DiscoverScreen({ navigation, route }) {
         snapToAlignment="start"
         decelerationRate="fast"
         disableIntervalMomentum={true}
-        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          setListHeight(h);
+          listHeightRef.current = h;
+        }}
         showsVerticalScrollIndicator={false}
         getItemLayout={getItemLayout}
         initialNumToRender={2}
@@ -904,4 +931,12 @@ const styles = StyleSheet.create({
   tagText:     { color: 'rgba(255,255,255,0.9)', fontSize: 11 },
   swipeHint:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   swipeHintText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
+
+  // End-of-feed card
+  endCard:    { alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.bg },
+  endEmoji:   { fontSize: 56 },
+  endTitle:   { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  endSub:     { color: 'rgba(255,255,255,0.5)', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  endBtn:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 12, paddingHorizontal: 28 },
+  endBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
