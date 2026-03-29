@@ -63,7 +63,7 @@ function InlineVideo({ uri, isScreenFocused }) {
 
 // ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
-  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onSuper, onReport, cardHeight,
+  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onMessage, onReport, cardHeight,
 }) {
   const likeScale  = useRef(new Animated.Value(0)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
@@ -253,15 +253,15 @@ const ProfileCard = memo(function ProfileCard({
         <TouchableOpacity
           style={styles.sideBtn}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            onSuper();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onMessage();
           }}
           activeOpacity={0.75}
         >
-          <View style={[styles.sideBtnCircle, { borderColor: '#ffd166', borderWidth: 1.5 }]}>
-            <AntDesign name="star" size={20} color="#ffd166" />
+          <View style={[styles.sideBtnCircle, { borderColor: '#4fc3f7', borderWidth: 1.5 }]}>
+            <Feather name="message-circle" size={20} color="#4fc3f7" />
           </View>
-          <Text style={styles.sideBtnLabel}>Super</Text>
+          <Text style={styles.sideBtnLabel}>Message</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -672,7 +672,16 @@ export default function DiscoverScreen({ navigation, route }) {
         if (flatListRef.current && index < profilesRef.current.length - 1)
           flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
       }}
-      onSuper={() => handleLike(item, index, true)}
+      onMessage={() => {
+        navigation.navigate('Chat', {
+          name: item.name,
+          initials: item.initials,
+          bgColor: '#14102a',
+          accentColor: '#ff6b6b',
+          userId: item.id,
+          photoUrl: item.photoUrl,
+        });
+      }}
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
   ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight]);
