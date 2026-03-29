@@ -664,6 +664,15 @@ export default function DiscoverScreen({ navigation, route }) {
     );
   }, [currentIndex]);
 
+  const rewindOne = useCallback(() => {
+    if (currentIndex > 0) {
+      const prev = currentIndex - 1;
+      currentIndexRef.current = prev;
+      flatListRef.current?.scrollToIndex({ index: prev, animated: true });
+      setCurrentIndex(prev);
+    }
+  }, [currentIndex]);
+
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80 }).current;
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (suppressViewability.current) return;
@@ -681,8 +690,8 @@ export default function DiscoverScreen({ navigation, route }) {
       ).then(() => {});
     }
 
-    if (idx > 0) {
-      // Trim everything before this card — nothing left above to scroll back to
+    if (!isAdminRef.current && idx > 0) {
+      // Non-admin: trim so there's nothing above to scroll back to
       const trimmed = profilesRef.current.slice(idx);
       profilesRef.current = trimmed;
       currentIndexRef.current = 0;
@@ -692,8 +701,8 @@ export default function DiscoverScreen({ navigation, route }) {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
       });
     } else {
-      currentIndexRef.current = 0;
-      setCurrentIndex(0);
+      currentIndexRef.current = idx;
+      setCurrentIndex(idx);
     }
   }, []);
   const getItemLayout = useCallback((_, i) => ({ length: listHeight, offset: listHeight * i, index: i }), [listHeight]);
@@ -761,6 +770,9 @@ export default function DiscoverScreen({ navigation, route }) {
           <View style={styles.headerRight}>
             {isAdmin && (
               <>
+                <TouchableOpacity style={styles.iconBtn} onPress={rewindOne} disabled={currentIndex === 0}>
+                  <Feather name="rotate-ccw" size={16} color={currentIndex === 0 ? 'rgba(255,209,102,0.3)' : '#ffd166'} />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.iconBtn} onPress={deleteCurrentProfile}>
                   <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
                     <Feather name="settings" size={16} color={colors.accent} />
@@ -820,6 +832,9 @@ export default function DiscoverScreen({ navigation, route }) {
           <View style={styles.headerRight}>
             {isAdmin && (
               <>
+                <TouchableOpacity style={styles.iconBtn} onPress={rewindOne} disabled={currentIndex === 0}>
+                  <Feather name="rotate-ccw" size={16} color={currentIndex === 0 ? 'rgba(255,209,102,0.3)' : '#ffd166'} />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.iconBtn} onPress={deleteCurrentProfile}>
                   <Animated.View style={{ transform: [{ rotate: spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
                     <Feather name="settings" size={16} color={colors.accent} />
