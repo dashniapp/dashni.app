@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
+import { clearLikesBadgeRef } from '../navigation/RootNavigator';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W = (W - 14 * 2 - 10) / 2;
@@ -23,7 +24,8 @@ export default function MatchesScreen({ navigation }) {
   useEffect(() => {
     loadAll(true); // first load shows spinner
     const unsub = navigation.addListener('focus', () => {
-      if (hasLoadedOnce.current) loadAll(false); // background refresh, no spinner
+      clearLikesBadgeRef.current?.(); // clear likes badge immediately on tab open
+      if (hasLoadedOnce.current) loadAll(false);
       else loadAll(true);
     });
     return unsub;

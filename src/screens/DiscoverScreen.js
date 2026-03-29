@@ -316,7 +316,7 @@ const ProfileCard = memo(function ProfileCard({
         <View style={styles.swipeHint}>
           <Feather name="chevron-up" size={13} color="rgba(255,255,255,0.3)" />
           <Text style={styles.swipeHintText}>
-            {totalSlides > 1 ? 'Tap sides to browse · Swipe up for next' : 'Swipe up for next profile'}
+            {totalSlides > 1 ? 'Tap sides to browse · Swipe up for next' : 'Swipe up for next'}
           </Text>
           <Feather name="chevron-up" size={13} color="rgba(255,255,255,0.3)" />
         </View>
@@ -421,11 +421,13 @@ export default function DiscoverScreen({ navigation, route }) {
   const [matchData, setMatchData]   = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
   const [isAdmin, setIsAdmin]       = useState(false);
-  const flatListRef   = useRef(null);
-  const profilesRef   = useRef([]);
-  const userIdRef     = useRef(null);
-  const seenRef       = useRef(new Set());
-  const spinAnim      = useRef(new Animated.Value(0)).current;
+  const flatListRef      = useRef(null);
+  const profilesRef      = useRef([]);
+  const userIdRef        = useRef(null);
+  const seenRef          = useRef(new Set());
+  const spinAnim         = useRef(new Animated.Value(0)).current;
+  const currentIndexRef  = useRef(0);
+  const dragStartY       = useRef(0);
 
   useEffect(() => {
     loadProfiles();
@@ -433,6 +435,9 @@ export default function DiscoverScreen({ navigation, route }) {
     const blurSub  = navigation.addListener('blur',  () => setIsScreenFocused(false));
     return () => { focusSub(); blurSub(); };
   }, []);
+
+  // Keep currentIndexRef in sync for use inside scroll handlers (avoids stale closures)
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -549,23 +554,9 @@ export default function DiscoverScreen({ navigation, route }) {
     setLoading(false);
   };
 
-  const advanceCard = useCallback((index) => {
-    if (isAdmin) {
-      if (flatListRef.current && index < profilesRef.current.length - 1)
-        flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
-    } else {
-      // scrollEnabled=false blocks scrollToIndex on iOS — advance by removing current card instead
-      setProfiles(prev => {
-        const next = prev.filter((_, i) => i !== index);
-        profilesRef.current = next;
-        return next;
-      });
-      setCurrentIndex(0);
-    }
-  }, [isAdmin]);
-
   const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
-    advanceCard(index);
+    if (flatListRef.current && index < profilesRef.current.length - 1)
+      flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -584,7 +575,7 @@ export default function DiscoverScreen({ navigation, route }) {
     } catch (e) {
       // Like failed silently — not critical enough to interrupt the user
     }
-  }, [advanceCard, navigation]);
+  }, [navigation]);
 
   const deleteCurrentProfile = useCallback(() => {
     const target = profilesRef.current[currentIndex];
@@ -627,6 +618,7 @@ export default function DiscoverScreen({ navigation, route }) {
   const rewindOne = useCallback(() => {
     if (currentIndex > 0) {
       const prev = currentIndex - 1;
+      currentIndexRef.current = prev; // sync immediately so onViewableItemsChanged accepts it
       flatListRef.current?.scrollToIndex({ index: prev, animated: true });
       setCurrentIndex(prev);
     }
@@ -636,7 +628,10 @@ export default function DiscoverScreen({ navigation, route }) {
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     const idx = viewableItems[0]?.index;
     if (idx == null) return;
+    // Ignore backward movement caused by a blocked drag — only commit forward progress
+    if (idx < currentIndexRef.current) return;
     setCurrentIndex(idx);
+    currentIndexRef.current = idx;
     const profile = profilesRef.current[idx];
     if (profile && userIdRef.current && !seenRef.current.has(profile.id)) {
       seenRef.current.add(profile.id);
@@ -656,11 +651,14 @@ export default function DiscoverScreen({ navigation, route }) {
       isScreenFocused={isScreenFocused}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
-      onPass={() => advanceCard(index)}
+      onPass={() => {
+        if (flatListRef.current && index < profilesRef.current.length - 1)
+          flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+      }}
       onSuper={() => handleLike(item, index, true)}
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
-  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, advanceCard]);
+  ), [currentIndex, navigation, profiles.length, handleLike, isScreenFocused]);
 
   if (loading) {
     return (
@@ -726,7 +724,6 @@ export default function DiscoverScreen({ navigation, route }) {
         renderItem={renderItem}
         keyExtractor={item => item.id}
         pagingEnabled
-        scrollEnabled={isAdmin}
         decelerationRate={0.85}
         disableIntervalMomentum={true}
         showsVerticalScrollIndicator={false}
@@ -737,6 +734,18 @@ export default function DiscoverScreen({ navigation, route }) {
         removeClippedSubviews
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
+        onScrollBeginDrag={(e) => {
+          dragStartY.current = e.nativeEvent.contentOffset.y;
+        }}
+        onScrollEndDrag={(e) => {
+          // If user dragged downward (backward) — offset decreased — snap back
+          if (e.nativeEvent.contentOffset.y < dragStartY.current) {
+            flatListRef.current?.scrollToOffset({
+              offset: currentIndexRef.current * H,
+              animated: true,
+            });
+          }
+        }}
       />
       <SafeAreaView edges={['top']} style={styles.headerAbsolute} pointerEvents="box-none">
         <View style={styles.staticHeader}>

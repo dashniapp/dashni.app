@@ -38,9 +38,13 @@ import LegalScreen from '../screens/LegalScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 // Module-level refs for signup flow
-export const onProfileCompleteRef  = { current: null };
-export const ignoreAuthChangeRef   = { current: false };
+export const onProfileCompleteRef   = { current: null };
+export const ignoreAuthChangeRef    = { current: false };
 export const setSignupInProgressRef = { current: null }; // locks navigator to AuthStack during signup
+
+// Badge-clearing refs — called by MatchesScreen/MessagesScreen on focus
+export const clearLikesBadgeRef    = { current: null };
+export const clearMessagesBadgeRef = { current: null };
 
 const TABS = [
   { name: 'Discover', icon: 'play-circle', lib: 'feather' },
@@ -55,6 +59,12 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
   const anims = useRef(TABS.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))).current;
 
   const realtimeRef = React.useRef(null);
+
+  // Wire badge-clearing refs so screens can clear badges on focus
+  useEffect(() => {
+    clearLikesBadgeRef.current    = () => setNewLikesCount(0);
+    clearMessagesBadgeRef.current = () => setUnreadCount(0);
+  }, []);
 
   // Load unread count + subscribe to realtime changes
   useEffect(() => {
@@ -145,9 +155,6 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
         friction: 6,
       }).start();
     });
-    // Clear badges instantly when user opens the respective tab
-    if (state.index === 1) setNewLikesCount(0);
-    if (state.index === 2) setUnreadCount(0);
   }, [state.index]);
 
   return (

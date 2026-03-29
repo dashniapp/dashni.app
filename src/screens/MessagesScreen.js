@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
+import { clearMessagesBadgeRef } from '../navigation/RootNavigator';
 
 export default function MessagesScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
@@ -35,6 +36,7 @@ export default function MessagesScreen({ navigation }) {
     setupRealtime();
 
     const unsub = navigation.addListener('focus', () => {
+      clearMessagesBadgeRef.current?.(); // clear messages badge immediately on tab open
       if (hasLoadedOnce.current) loadConversations(false);
       else loadConversations(true);
     });
