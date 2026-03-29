@@ -209,7 +209,7 @@ function PersistentAppHeader() {
 
 function AppTabs() {
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1 }}>
       <PersistentAppHeader />
       <Tab.Navigator
         tabBar={props => <DynamicIslandTabBar {...props} />}
@@ -336,7 +336,7 @@ export default function RootNavigator() {
 const styles = StyleSheet.create({
   // Persistent header (renders once, above all tabs)
   persistentSafe: {},
-  persistentBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 8 },
+  persistentBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 8, backgroundColor: colors.bg },
   persistentLogoImg: { width: 24, height: 24, borderRadius: 6 },
   persistentLogoText: { fontSize: 18, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
 
