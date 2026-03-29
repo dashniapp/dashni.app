@@ -297,10 +297,10 @@ export default function ProfileScreen({ navigation }) {
   const completeness = [profile?.name, profile?.bio, profile?.location, photoUrl, hasVideo].filter(Boolean).length * 20;
 
   return (
-    <View style={[styles.safe, { paddingTop: insets.top }]}>
+    <View style={[styles.safe, { paddingTop: insets.top + 40 }]}>
       {/* Settings button floats at top-right — no extra header row so height matches other tabs */}
       <TouchableOpacity
-        style={[styles.settingsBtn, { top: insets.top + 10 }]}
+        style={[styles.settingsBtn, { top: insets.top + 46 }]}
         onPress={() => navigation.navigate('Settings')}
         activeOpacity={0.8}
       >
