@@ -121,7 +121,7 @@ export default function SettingsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { padding: 4 },
   headerTitle: { flex: 1, color: colors.textPrimary, fontSize: 17, fontWeight: '600', textAlign: 'center' },
   sectionLabel: { color: colors.textMuted, fontSize: 12, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: 18, paddingTop: 20, paddingBottom: 8 },

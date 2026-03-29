@@ -297,13 +297,14 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={styles.safe}>
-      <View style={styles.headerSafe}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Settings')}>
-            <Feather name="settings" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Settings button floats at top-right — no extra header row so height matches other tabs */}
+      <TouchableOpacity
+        style={styles.settingsBtn}
+        onPress={() => navigation.navigate('Settings')}
+        activeOpacity={0.8}
+      >
+        <Feather name="settings" size={18} color={colors.textSecondary} />
+      </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
@@ -658,9 +659,7 @@ export default function ProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  headerSafe: { backgroundColor: colors.bg, borderBottomWidth: 1, borderBottomColor: colors.border },
-  header: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
-  iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  settingsBtn: { position: 'absolute', top: 10, right: 18, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   scroll: { paddingBottom: 20 },
   heroWrap: { width: W, height: H * 0.52, position: 'relative', overflow: 'hidden', backgroundColor: '#111' },
   emptyPhotoWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
