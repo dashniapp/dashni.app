@@ -183,7 +183,7 @@ export default function MatchesScreen({ navigation }) {
   const currentData = tab === 'matches' ? matches : likes;
 
   return (
-    <View style={[styles.safe, { paddingTop: insets.top }]}>
+    <View style={[styles.safe, { paddingTop: insets.top + 40 }]}>
 
       {/* Tabs */}
       <View style={styles.tabs}>

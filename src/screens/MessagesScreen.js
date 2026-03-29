@@ -171,7 +171,7 @@ export default function MessagesScreen({ navigation }) {
   );
 
   return (
-    <View style={[styles.safe, { paddingTop: insets.top }]}>
+    <View style={[styles.safe, { paddingTop: insets.top + 40 }]}>
       <Text style={styles.sectionLabel}>Messages</Text>
 
       {loading ? (
