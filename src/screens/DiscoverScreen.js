@@ -6,6 +6,7 @@ import {
   Dimensions, ActivityIndicator, Image,
   FlatList, Alert, Animated,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { Feather, Ionicons, AntDesign } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -735,7 +736,7 @@ export default function DiscoverScreen({ navigation, route }) {
 
   return (
     <View style={styles.safe}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
       <FlatList
         ref={flatListRef}
         data={profiles}
