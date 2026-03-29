@@ -809,7 +809,6 @@ export default function DiscoverScreen({ navigation, route }) {
         data={profiles}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        scrollEnabled={isAdmin}
         pagingEnabled={true}
         decelerationRate="fast"
         scrollEventThrottle={16}
