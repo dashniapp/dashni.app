@@ -590,9 +590,22 @@ export default function DiscoverScreen({ navigation, route }) {
     setLoading(false);
   };
 
+  // Advance non-admin feed by trimming the current profile off the front
+  const advanceNonAdmin = useCallback(() => {
+    const trimmed = profilesRef.current.slice(1);
+    profilesRef.current = trimmed;
+    currentIndexRef.current = 0;
+    setCurrentIndex(0);
+    setProfiles(trimmed);
+  }, []);
+
   const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
-    if (flatListRef.current && index < profilesRef.current.length - 1)
-      flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+    if (isAdminRef.current) {
+      if (flatListRef.current && index < profilesRef.current.length - 1)
+        flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+    } else {
+      advanceNonAdmin();
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -611,7 +624,7 @@ export default function DiscoverScreen({ navigation, route }) {
     } catch (e) {
       // Like failed silently — not critical enough to interrupt the user
     }
-  }, [navigation]);
+  }, [navigation, advanceNonAdmin]);
 
   const deleteCurrentProfile = useCallback(() => {
     const target = profilesRef.current[currentIndex];
@@ -720,8 +733,12 @@ export default function DiscoverScreen({ navigation, route }) {
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
       onLike={() => handleLike(item, index, false)}
       onPass={() => {
-        if (flatListRef.current && index < profilesRef.current.length - 1)
-          flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+        if (isAdmin) {
+          if (flatListRef.current && index < profilesRef.current.length - 1)
+            flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+        } else {
+          advanceNonAdmin();
+        }
       }}
       onMessage={() => {
         navigation.navigate('Chat', {
@@ -736,7 +753,7 @@ export default function DiscoverScreen({ navigation, route }) {
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
     );
-  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight]);
+  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, listHeight, isAdmin, advanceNonAdmin]);
 
   if (loading) {
     return (
@@ -793,6 +810,7 @@ export default function DiscoverScreen({ navigation, route }) {
         data={profiles}
         renderItem={renderItem}
         keyExtractor={item => item.id}
+        scrollEnabled={isAdmin}
         snapToInterval={listHeight}
         snapToAlignment="start"
         decelerationRate="fast"
