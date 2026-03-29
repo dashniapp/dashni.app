@@ -197,7 +197,7 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
 // Rendered once above all tabs — never unmounts, never flickers on tab switch
 function PersistentAppHeader() {
   return (
-    <SafeAreaView edges={['top']} style={styles.persistentSafe}>
+    <SafeAreaView edges={['top']} style={styles.persistentSafe} pointerEvents="none">
       <StatusBar style="light" />
       <View style={styles.persistentBar}>
         <Image source={require('../../assets/icon.png')} style={styles.persistentLogoImg} />
@@ -209,8 +209,7 @@ function PersistentAppHeader() {
 
 function AppTabs() {
   return (
-    <View style={{ flex: 1 }}>
-      <PersistentAppHeader />
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Tab.Navigator
         tabBar={props => <DynamicIslandTabBar {...props} />}
         screenOptions={{ headerShown: false }}
@@ -225,6 +224,7 @@ function AppTabs() {
           return <Tab.Screen key={tab.name} name={tab.name} component={Screen} />;
         })}
       </Tab.Navigator>
+      <PersistentAppHeader />
     </View>
   );
 }
@@ -335,8 +335,8 @@ export default function RootNavigator() {
 
 const styles = StyleSheet.create({
   // Persistent header (renders once, above all tabs)
-  persistentSafe: {},
-  persistentBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 8, backgroundColor: colors.bg },
+  persistentSafe: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  persistentBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 8 },
   persistentLogoImg: { width: 24, height: 24, borderRadius: 6 },
   persistentLogoText: { fontSize: 18, fontWeight: '800', color: colors.accent, letterSpacing: -0.5 },
 
