@@ -49,7 +49,6 @@ function InlineVideo({ uri, isScreenFocused }) {
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         nativeControls={false}
-        allowsFullscreen={false}
         allowsPictureInPicture={false}
       />
       {!playing && (
