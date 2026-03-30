@@ -68,8 +68,8 @@ export default function BoostScreen({ navigation }) {
 
         {boosting ? (
           <>
-            <Text style={styles.title}>You're boosted! 🚀</Text>
-            <Text style={styles.sub}>Your profile is being shown to 10x more people right now</Text>
+            <Text style={styles.title}>Boost active</Text>
+            <Text style={styles.sub}>Your profile is featured in discovery for the next 30 minutes</Text>
             <View style={styles.timerCard}>
               <Text style={styles.timerLabel}>Time remaining</Text>
               <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
@@ -78,25 +78,25 @@ export default function BoostScreen({ navigation }) {
         ) : (
           <>
             <Text style={styles.title}>Boost your profile</Text>
-            <Text style={styles.sub}>Be the top profile in your area for 30 minutes and get 10x more matches</Text>
+            <Text style={styles.sub}>Feature your profile in discovery for 30 minutes — free during our beta</Text>
           </>
         )}
 
-        {/* Stats */}
+        {/* Info */}
         <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statNum}>10x</Text>
-            <Text style={styles.statLabel}>More views</Text>
-          </View>
-          <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Text style={styles.statNum}>30m</Text>
             <Text style={styles.statLabel}>Duration</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statNum}>3x</Text>
-            <Text style={styles.statLabel}>More matches</Text>
+            <Text style={styles.statNum}>1×</Text>
+            <Text style={styles.statLabel}>Per day</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statNum}>Free</Text>
+            <Text style={styles.statLabel}>Beta</Text>
           </View>
         </View>
 
@@ -112,7 +112,7 @@ export default function BoostScreen({ navigation }) {
           <TouchableOpacity style={styles.boostBtn} onPress={startBoost} activeOpacity={0.85}>
             <LinearGradient colors={['#e91e8c', '#ff6b6b']} style={styles.boostBtnInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Feather name="zap" size={18} color="#fff" />
-              <Text style={styles.boostBtnText}>Boost now — Free</Text>
+              <Text style={styles.boostBtnText}>Boost now</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { colors, radius } from '../theme';
@@ -95,6 +95,15 @@ export default function LegalScreen({ route, navigation }) {
 
         <Text style={styles.content}>{isPrivacy ? PRIVACY_POLICY : TERMS}</Text>
 
+        <TouchableOpacity
+          style={styles.fullPolicyBtn}
+          onPress={() => Linking.openURL(isPrivacy ? 'https://dashni.app/privacy' : 'https://dashni.app/terms')}
+          activeOpacity={0.7}
+        >
+          <Feather name="external-link" size={14} color={colors.accent} />
+          <Text style={styles.fullPolicyText}>View full {isPrivacy ? 'Privacy Policy' : 'Terms of Service'} online</Text>
+        </TouchableOpacity>
+
         <View style={styles.contactCard}>
           <Feather name="mail" size={16} color={colors.accent} />
           <Text style={styles.contactText}>
@@ -120,6 +129,8 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#fff', fontWeight: '600' },
   content: { color: colors.textSecondary, fontSize: 14, lineHeight: 24 },
   contactCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bgCard, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: 14 },
+  fullPolicyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 12 },
+  fullPolicyText: { color: colors.accent, fontSize: 14, textDecorationLine: 'underline' },
   contactText: { color: colors.textSecondary, fontSize: 13, flex: 1 },
   contactEmail: { color: colors.accent, fontWeight: '600' },
 });
