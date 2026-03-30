@@ -13,7 +13,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourname.dashni",
+      "bundleIdentifier": "com.dashni.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Dashni uses your camera to record profile videos.",
         "NSMicrophoneUsageDescription": "Dashni uses your microphone for video recording.",
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#e91e8c"
       },
-      "package": "com.yourname.dashni",
+      "package": "com.dashni.app",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",

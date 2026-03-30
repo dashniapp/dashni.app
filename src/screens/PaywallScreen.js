@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert, Dimensions, Image, Animated,
+  Dimensions, Image, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -9,12 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
-
-const PLANS = [
-  { id: 'weekly', label: 'Weekly', popular: false },
-  { id: '6month', label: '6 Months', popular: true },
-  { id: 'monthly', label: 'Monthly', popular: false },
-];
 
 const FEATURES = [
   { icon: 'eye', label: 'See everyone who liked you' },
@@ -34,7 +28,6 @@ const BLURRED_COLORS = [
 ];
 
 export default function PaywallScreen({ navigation }) {
-  const [selected, setSelected] = useState('6month');
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -45,14 +38,6 @@ export default function PaywallScreen({ navigation }) {
       ])
     ).start();
   }, []);
-
-  const handleSubscribe = () => {
-    Alert.alert(
-      'Coming Soon',
-      'Dashni Gold is launching soon. You will be notified when subscriptions are available.',
-      [{ text: 'OK' }]
-    );
-  };
 
   return (
     <View style={styles.safe}>
@@ -108,49 +93,19 @@ export default function PaywallScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Plans */}
-        <View style={styles.plansWrap}>
-          {PLANS.map((plan) => (
-            <TouchableOpacity
-              key={plan.id}
-              style={[styles.planCard, selected === plan.id && styles.planCardSelected]}
-              onPress={() => setSelected(plan.id)}
-              activeOpacity={0.85}
-            >
-              {plan.popular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>Most popular</Text>
-                </View>
-              )}
-              <View style={styles.planLeft}>
-                <View style={[styles.radio, selected === plan.id && styles.radioActive]}>
-                  {selected === plan.id && <View style={styles.radioDot} />}
-                </View>
-                <View>
-                  <Text style={styles.planLabel}>{plan.label}</Text>
-                  <Text style={styles.planPerMonth}>{''}</Text>
-                </View>
-              </View>
-              <Text style={[styles.planPrice, selected === plan.id && { color: colors.accent }]}>{'Coming soon'}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* CTA */}
+        {/* Coming soon banner */}
         <Animated.View style={[styles.ctaWrap, { transform: [{ scale: pulseAnim }] }]}>
-          <TouchableOpacity onPress={handleSubscribe} activeOpacity={0.9}>
-            <LinearGradient
-              colors={['#e91e8c', '#ff6b6b', '#ff9a3c']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.ctaBtn}
-            >
-              <Ionicons name="star" size={18} color="#fff" />
-              <Text style={styles.ctaBtnText}>Get Dashni Gold</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <LinearGradient
+            colors={['#e91e8c', '#ff6b6b', '#ff9a3c']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={[styles.ctaBtn, { opacity: 0.85 }]}
+          >
+            <Ionicons name="star" size={18} color="#fff" />
+            <Text style={styles.ctaBtnText}>Dashni Gold — Coming Soon</Text>
+          </LinearGradient>
         </Animated.View>
 
-        <Text style={styles.terms}>Cancel anytime · No hidden fees · Auto-renews</Text>
+        <Text style={styles.terms}>Premium features launching soon · You'll be notified</Text>
 
         <View style={{ height: 50 }} />
       </Animated.ScrollView>
@@ -180,19 +135,7 @@ const styles = StyleSheet.create({
   featureRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   featureIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accentDim, borderWidth: 1, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
   featureLabel: { color: '#fff', fontSize: 14, flex: 1 },
-  plansWrap: { marginHorizontal: 16, gap: 10, marginBottom: 20 },
-  planCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 16, position: 'relative' },
-  planCardSelected: { borderColor: colors.accent, borderWidth: 2, backgroundColor: colors.accentDim },
-  popularBadge: { position: 'absolute', top: -10, left: 16, backgroundColor: colors.accent, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  popularText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  planLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
-  radioActive: { borderColor: colors.accent },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
-  planLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  planPerMonth: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
-  planPrice: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  ctaWrap: { marginHorizontal: 16, borderRadius: radius.full, overflow: 'hidden' },
+  ctaWrap: { marginHorizontal: 16, borderRadius: radius.full, overflow: 'hidden', marginBottom: 20 },
   ctaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 17, borderRadius: radius.full },
   ctaBtnText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
   terms: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', marginTop: 12 },
