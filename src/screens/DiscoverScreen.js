@@ -4,7 +4,7 @@ import React, {
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Dimensions, ActivityIndicator, Image,
-  FlatList, Alert, Animated,
+  FlatList, Alert, Animated, Easing,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -96,13 +96,32 @@ const ProfileCard = memo(function ProfileCard({
   };
 
   const animateLike = () => {
-    likeScale.setValue(0.3);
+    likeScale.setValue(0);
     likeOpacity.setValue(1);
-    Animated.parallel([
-      Animated.spring(likeScale, { toValue: 1.2, friction: 3, useNativeDriver: true }),
-      Animated.sequence([
-        Animated.delay(400),
-        Animated.timing(likeOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    Animated.sequence([
+      // Pop in with a smooth overshoot — feels satisfying and crisp
+      Animated.timing(likeScale, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.back(1.6)),
+        useNativeDriver: true,
+      }),
+      // Hold so the user clearly sees the heart
+      Animated.delay(600),
+      // Fade out with a gentle scale-down
+      Animated.parallel([
+        Animated.timing(likeOpacity, {
+          toValue: 0,
+          duration: 380,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(likeScale, {
+          toValue: 0.8,
+          duration: 380,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
       ]),
     ]).start();
   };
