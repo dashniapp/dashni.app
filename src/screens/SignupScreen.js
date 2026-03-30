@@ -230,7 +230,17 @@ export default function SignupScreen({ navigation }) {
       });
 
       // Upload photo
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = authData.session ?? (await supabase.auth.getSession()).data?.session;
+      if (!session) {
+        Alert.alert(
+          'Confirm your email',
+          'We sent a confirmation link to ' + email.trim() + '. Please verify your email, then log in to complete your profile.',
+        );
+        ignoreAuthChangeRef.current = false;
+        setSignupInProgressRef.current?.(false);
+        setLoading(false);
+        return;
+      }
       const photoForm = new FormData();
       photoForm.append('file', { uri: photoUri, name: 'avatar.jpg', type: 'image/jpeg' });
       await fetch(
