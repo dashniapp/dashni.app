@@ -786,7 +786,7 @@ export default function DiscoverScreen({ navigation, route }) {
     );
   }
 
-  if (profiles.filter(p => !p._isEnd).length === 0) {
+  if (profiles.length === 0) {
     return (
       <View style={[styles.safe, { backgroundColor: colors.bg }]}>
         <View style={[styles.staticHeader, { paddingTop: insets.top + 46 }]}>
