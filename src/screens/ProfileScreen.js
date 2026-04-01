@@ -72,6 +72,23 @@ export default function ProfileScreen({ navigation }) {
     return unsub;
   }, [navigation]);
 
+  useEffect(() => {
+    if (loading) return;
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      if (!photoUrl || !videoUrl) {
+        e.preventDefault();
+        Alert.alert(
+          'Profile incomplete',
+          !photoUrl
+            ? 'You must have at least one profile photo before leaving this screen.'
+            : 'You must have a profile video before leaving this screen.',
+          [{ text: 'OK' }]
+        );
+      }
+    });
+    return unsub;
+  }, [navigation, loading, photoUrl, videoUrl]);
+
   const loadProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -263,6 +280,15 @@ export default function ProfileScreen({ navigation }) {
 
   const deleteMainPhoto = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const hasOtherPhotos = extraPhotos.some(Boolean);
+    if (!hasOtherPhotos) {
+      Alert.alert(
+        'Photo required',
+        'You must have at least one profile photo. Add another photo before removing this one.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     Alert.alert('Remove main photo', 'Remove your main profile photo?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => {
@@ -513,18 +539,14 @@ export default function ProfileScreen({ navigation }) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.videoMenuItem} onPress={() => {
               setShowVideoMenu(false);
-              Alert.alert('Delete video', 'Remove your video profile?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: async () => {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  await supabase.storage.from('videos').remove([`${user.id}/profile.mp4`]);
-                  await supabase.from('profiles').update({ has_video: false }).eq('id', user.id);
-                  setVideoUrl(null);
-                }},
-              ]);
+              Alert.alert(
+                'Video required',
+                'A profile video is required on Dashni. You can replace it with a new one, but it cannot be deleted.',
+                [{ text: 'OK' }]
+              );
             }}>
-              <Feather name="trash-2" size={20} color="#ff3b30" />
-              <Text style={[styles.videoMenuItemText, { color: '#ff3b30' }]}>Delete video</Text>
+              <Feather name="info" size={20} color={colors.textMuted} />
+              <Text style={[styles.videoMenuItemText, { color: colors.textMuted }]}>Why can't I delete?</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.videoMenuItem, { marginTop: 8, backgroundColor: colors.bgSurface, borderRadius: radius.md }]} onPress={() => setShowVideoMenu(false)}>
               <Text style={[styles.videoMenuItemText, { textAlign: 'center', width: '100%' }]}>Cancel</Text>

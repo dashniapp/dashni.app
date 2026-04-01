@@ -602,6 +602,16 @@ export default function DiscoverScreen({ navigation, route }) {
     setProfiles(trimmed);
   }, []);
 
+  const handlePass = useCallback((passedProfile) => {
+    if (userIdRef.current && passedProfile && !passedProfile._isEnd) {
+      supabase.from('passes').upsert(
+        { user_id: userIdRef.current, profile_id: passedProfile.id },
+        { onConflict: 'user_id,profile_id' }
+      ).then(() => {});
+    }
+    advanceNonAdmin();
+  }, [advanceNonAdmin]);
+
   const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
     if (isAdminRef.current) {
       if (flatListRef.current && index < profilesRef.current.length - 1)
@@ -739,7 +749,7 @@ export default function DiscoverScreen({ navigation, route }) {
           if (flatListRef.current && index < profilesRef.current.length - 1)
             flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
         } else {
-          advanceNonAdmin();
+          handlePass(item);
         }
       }}
       onMessage={() => {
@@ -755,7 +765,7 @@ export default function DiscoverScreen({ navigation, route }) {
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
     );
-  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin, animateLike]);
+  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin, handlePass, animateLike]);
 
   if (loading) {
     return (
