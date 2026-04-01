@@ -19,6 +19,15 @@ const DAYS   = Array.from({ length: 31 }, (_, i) => i + 1);
 const CUR_YEAR = new Date().getFullYear();
 const YEARS  = Array.from({ length: 100 }, (_, i) => CUR_YEAR - 18 - i); // 18 to 118 years ago
 
+const ALBANIAN_ORIGINS = [
+  { key: 'Kosovë', emoji: '🇽🇰' },
+  { key: 'Shqipëri', emoji: '🇦🇱' },
+  { key: 'Maqedoni e Veriut', emoji: '🇲🇰' },
+  { key: 'Mali i Zi', emoji: '🇲🇪' },
+  { key: 'Preshevë / Luginë', emoji: '🌍' },
+  { key: 'Diaspora', emoji: '✈️' },
+];
+
 const TOTAL_STEPS = 12; // 0..11
 
 // ── Vertical spinning wheel column ───────────────────────────────────────────
@@ -138,6 +147,13 @@ export default function SignupScreen({ navigation }) {
     'Teknologji 💻', 'Muzikë Shqip 🎤', 'Kuzhina Shqipe 🥘', 'Historia 🏛️', 'Mode 👗',
   ];
 
+  const computeAge = (year, month0, day) => {
+    const today = new Date();
+    let age = today.getFullYear() - year;
+    if (today < new Date(today.getFullYear(), month0, day)) age--;
+    return age;
+  };
+
   const progress = step / (TOTAL_STEPS - 1);
 
   const goBack = () => {
@@ -162,7 +178,7 @@ export default function SignupScreen({ navigation }) {
         if (!name.trim()) { Alert.alert('Required', 'Enter your first name.'); return false; }
         break;
       case 3: {
-        const age = CUR_YEAR - YEARS[yearIdx];
+        const age = computeAge(YEARS[yearIdx], monthIdx, DAYS[dayIdx]);
         if (age < 18) { Alert.alert('Must be 18+', 'You must be at least 18 to use Dashni.'); return false; }
         break;
       }
@@ -212,13 +228,14 @@ export default function SignupScreen({ navigation }) {
       const user = authData.user;
       if (!user) throw new Error('Account creation failed');
 
-      const age = CUR_YEAR - YEARS[yearIdx];
+      const age = computeAge(YEARS[yearIdx], monthIdx, DAYS[dayIdx]);
       const dob = `${YEARS[yearIdx]}-${String(monthIdx + 1).padStart(2, '0')}-${String(DAYS[dayIdx]).padStart(2, '0')}`;
 
       await supabase.from('profiles').upsert({
         id: user.id,
         name: name.trim(),
         age,
+        dob,
         gender,
         location: location.trim(),
         hometown: hometown.trim() || null,
@@ -302,7 +319,7 @@ export default function SignupScreen({ navigation }) {
   };
 
   // ── Computed birthday age ──
-  const age = CUR_YEAR - YEARS[yearIdx];
+  const age = computeAge(YEARS[yearIdx], monthIdx, DAYS[dayIdx]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   const isDone = step === 11;
@@ -507,24 +524,33 @@ export default function SignupScreen({ navigation }) {
             </StepShell>
           )}
 
-          {/* ── Step 7: City ── */}
+          {/* ── Step 7: City & Origin ── */}
           {step === 7 && (
-            <StepShell title="What city are you in?" sub="This helps us show you nearby people">
+            <StepShell title="Where do you live?" sub="Include your country — e.g. London, UK · Prishtina, Kosovë">
               <View style={s.inputWrap}>
                 <Feather name="map-pin" size={18} color={colors.textMuted} />
                 <TextInput
                   style={s.input} value={location} onChangeText={setLocation}
-                  placeholder="e.g. London, New York, Berlin" placeholderTextColor={colors.textMuted}
+                  placeholder="City, Country — e.g. London, UK" placeholderTextColor={colors.textMuted}
                   autoCapitalize="words" autoFocus
                 />
               </View>
-              <View style={s.inputWrap}>
-                <Feather name="home" size={18} color={colors.textMuted} />
-                <TextInput
-                  style={s.input} value={hometown} onChangeText={setHometown}
-                  placeholder="Hometown (optional) — e.g. Shkodër" placeholderTextColor={colors.textMuted}
-                  autoCapitalize="words"
-                />
+              <View style={{ gap: 10 }}>
+                <Text style={s.sub}>Albanian region of origin</Text>
+                <View style={s.originGrid}>
+                  {ALBANIAN_ORIGINS.map(opt => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[s.originChip, hometown === opt.key && s.originChipOn]}
+                      onPress={() => { setHometown(opt.key); Haptics.selectionAsync(); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={s.originEmoji}>{opt.emoji}</Text>
+                      <Text style={[s.originLabel, hometown === opt.key && s.originLabelOn]}>{opt.key}</Text>
+                      {hometown === opt.key && <Ionicons name="checkmark-circle" size={14} color={colors.accent} />}
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </StepShell>
           )}
@@ -748,4 +774,11 @@ const s = StyleSheet.create({
   // Continue button
   nextBtn:     { backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 16, alignItems: 'center', marginTop: 12 },
   nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  originGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  originChip:   { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.bgCard, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 8, paddingHorizontal: 12 },
+  originChipOn: { borderColor: colors.accent, backgroundColor: colors.accentDim },
+  originEmoji:  { fontSize: 15 },
+  originLabel:  { color: colors.textSecondary, fontSize: 13, fontWeight: '500' },
+  originLabelOn:{ color: colors.accent, fontWeight: '700' },
 });

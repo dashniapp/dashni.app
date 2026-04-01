@@ -272,6 +272,16 @@ const ProfileCard = memo(function ProfileCard({
             </Text>
           </View>
         ) : null}
+        {profile.looking_for && (
+          <Text style={styles.lookingForText}>
+            {{'relationship':'💍 Long-term relationship','casual':'☕ Casual dating','friendship':'👋 Friendship','unsure':'🤔 Open to anything'}[profile.looking_for]}
+          </Text>
+        )}
+        {profile.hometown ? (
+          <Text style={styles.originText}>
+            {{'Kosovë':'🇽🇰','Shqipëri':'🇦🇱','Maqedoni e Veriut':'🇲🇰','Mali i Zi':'🇲🇪','Preshevë / Luginë':'🌍','Diaspora':'✈️'}[profile.hometown] || '🌍'} {profile.hometown}
+          </Text>
+        ) : null}
         {profile.bio ? (
           <Text style={styles.bio} numberOfLines={2}>{profile.bio}</Text>
         ) : null}
@@ -510,7 +520,7 @@ export default function DiscoverScreen({ navigation, route }) {
 
       let q = supabase
         .from('profiles')
-        .select('id,name,age,gender,location,bio,interests,has_video,verification_status,hometown,country,diaspora_mode')
+        .select('id,name,age,gender,location,bio,interests,has_video,verification_status,hometown,country,diaspora_mode,looking_for,looking_for_gender')
         .neq('id', user.id);
 
       const genderFilter = me?.looking_for_gender;
@@ -961,6 +971,8 @@ const styles = StyleSheet.create({
   tagText:     { color: 'rgba(255,255,255,0.9)', fontSize: 11 },
   swipeHint:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   swipeHintText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
+  lookingForText: { color: 'rgba(255,255,255,0.65)', fontSize: 12 },
+  originText:     { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
 
   // End-of-feed card
   endCard:    { alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.bg },

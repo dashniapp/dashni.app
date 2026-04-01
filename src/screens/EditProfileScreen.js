@@ -13,6 +13,15 @@ import { colors, radius } from '../theme';
 
 const ALL_TAGS = ['Hiking', 'Coffee', 'Photography', 'Live Music', 'Travel', 'Cooking', 'Reading', 'Fitness', 'Art', 'Gaming', 'Movies', 'Dogs', 'Yoga', 'Dancing', 'Muzikë', 'Udhëtime', 'Gatim', 'Natyrë'];
 
+const ALBANIAN_ORIGINS = [
+  { key: 'Kosovë', emoji: '🇽🇰' },
+  { key: 'Shqipëri', emoji: '🇦🇱' },
+  { key: 'Maqedoni e Veriut', emoji: '🇲🇰' },
+  { key: 'Mali i Zi', emoji: '🇲🇪' },
+  { key: 'Preshevë / Luginë', emoji: '🌍' },
+  { key: 'Diaspora', emoji: '✈️' },
+];
+
 export default function EditProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,6 +34,7 @@ export default function EditProfileScreen({ navigation }) {
   const [hasVideo, setHasVideo] = useState(false);
   const [videoUri, setVideoUri] = useState(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [hometown, setHometown] = useState('');
 
   useEffect(() => {
     loadProfile();
@@ -42,6 +52,7 @@ export default function EditProfileScreen({ navigation }) {
         setBio(data.bio || '');
         setGender(data.gender || '');
         setHasVideo(data.has_video || false);
+        setHometown(data.hometown || '');
         if (data.interests) {
           setSelectedTags(data.interests.split(',').map(t => t.trim()).filter(Boolean));
         }
@@ -112,6 +123,7 @@ export default function EditProfileScreen({ navigation }) {
         name: name.trim(),
         age: age ? parseInt(age) : null,
         location: location.trim(),
+        hometown: hometown.trim(),
         bio: bio.trim(),
         gender: gender,
         interests: selectedTags.join(', '),
@@ -188,9 +200,27 @@ export default function EditProfileScreen({ navigation }) {
                 style={styles.input}
                 value={location}
                 onChangeText={setLocation}
-                placeholder="e.g. Tirana, London, New York"
+                placeholder="City, Country — e.g. London, UK"
                 placeholderTextColor={colors.textMuted}
               />
+            </View>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Albanian origin</Text>
+            <View style={styles.originGrid}>
+              {ALBANIAN_ORIGINS.map(opt => (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.originChip, hometown === opt.key && styles.originChipOn]}
+                  onPress={() => { setHometown(opt.key); Haptics.selectionAsync(); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.originEmoji}>{opt.emoji}</Text>
+                  <Text style={[styles.tagText, hometown === opt.key && styles.tagTextSelected]}>{opt.key}</Text>
+                  {hometown === opt.key && <Ionicons name="checkmark-circle" size={14} color={colors.accent} />}
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -283,4 +313,8 @@ const styles = StyleSheet.create({
   tagTextSelected: { color: colors.accent, fontWeight: '500' },
   saveFullBtn: { backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
   saveFullBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  originGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  originChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.bgSurface, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 8, paddingHorizontal: 12 },
+  originChipOn: { borderColor: colors.accentBorder, backgroundColor: colors.accentDim },
+  originEmoji: { fontSize: 15 },
 });

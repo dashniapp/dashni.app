@@ -339,6 +339,14 @@ export default function ViewProfileScreen({ route, navigation }) {
                 {age ? <View style={styles.pill}><Feather name="calendar" size={13} color={colors.textMuted} /><Text style={styles.pillText}>{age} years old</Text></View> : null}
                 {profile.gender ? <View style={styles.pill}><Ionicons name="person-outline" size={13} color={colors.textMuted} /><Text style={styles.pillText}>{profile.gender}</Text></View> : null}
                 {profile.location ? <View style={styles.pill}><Feather name="map-pin" size={13} color={colors.textMuted} /><Text style={styles.pillText}>{profile.location}</Text></View> : null}
+                {profile.hometown ? (
+                  <View style={styles.pill}>
+                    <Text style={{ fontSize: 13 }}>
+                      {{'Kosovë':'🇽🇰','Shqipëri':'🇦🇱','Maqedoni e Veriut':'🇲🇰','Mali i Zi':'🇲🇪','Preshevë / Luginë':'🌍','Diaspora':'✈️'}[profile.hometown] || '🌍'}
+                    </Text>
+                    <Text style={styles.pillText}>{profile.hometown}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           )}
