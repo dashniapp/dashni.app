@@ -102,23 +102,23 @@ const ProfileCard = memo(function ProfileCard({
       // Pop in with a smooth overshoot — feels satisfying and crisp
       Animated.timing(likeScale, {
         toValue: 1,
-        duration: 320,
-        easing: Easing.out(Easing.back(1.6)),
+        duration: 480,
+        easing: Easing.out(Easing.back(1.4)),
         useNativeDriver: true,
       }),
       // Hold so the user clearly sees the heart
-      Animated.delay(600),
+      Animated.delay(900),
       // Fade out with a gentle scale-down
       Animated.parallel([
         Animated.timing(likeOpacity, {
           toValue: 0,
-          duration: 380,
+          duration: 520,
           easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(likeScale, {
-          toValue: 0.8,
-          duration: 380,
+          toValue: 0.75,
+          duration: 520,
           easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }),
