@@ -64,10 +64,8 @@ function InlineVideo({ uri, isScreenFocused }) {
 
 // ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
-  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onMessage, onReport, cardHeight, dotsTop,
+  profile, isActive, isScreenFocused, onInfo, onLike, onPass, onMessage, onReport, cardHeight, dotsTop, animateLike,
 }) {
-  const likeScale  = useRef(new Animated.Value(0)).current;
-  const likeOpacity = useRef(new Animated.Value(0)).current;
   const [slideIndex, setSlideIndex] = useState(0);
 
   // Reset to first slide when card goes off screen
@@ -93,37 +91,6 @@ const ProfileCard = memo(function ProfileCard({
       setSlideIndex(s => s - 1);
       Haptics.selectionAsync();
     }
-  };
-
-  const animateLike = () => {
-    likeScale.setValue(0);
-    likeOpacity.setValue(1);
-    Animated.sequence([
-      // Pop in with a smooth overshoot — feels satisfying and crisp
-      Animated.timing(likeScale, {
-        toValue: 1,
-        duration: 480,
-        easing: Easing.out(Easing.back(1.4)),
-        useNativeDriver: true,
-      }),
-      // Hold so the user clearly sees the heart
-      Animated.delay(900),
-      // Fade out with a gentle scale-down
-      Animated.parallel([
-        Animated.timing(likeOpacity, {
-          toValue: 0,
-          duration: 520,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(likeScale, {
-          toValue: 0.75,
-          duration: 520,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
   };
 
   if (!profile) return <View style={[styles.card, cardHeight && { height: cardHeight }]} />;
@@ -213,18 +180,7 @@ const ProfileCard = memo(function ProfileCard({
         />
       )}
 
-      {/* ── LAYER 6: Like animation ── */}
-      <Animated.View
-        style={[styles.likeHeart, {
-          opacity: likeOpacity,
-          transform: [{ scale: likeScale }],
-        }]}
-        pointerEvents="none"
-      >
-        <Text style={{ fontSize: 80 }}>❤️</Text>
-      </Animated.View>
-
-      {/* ── LAYER 7: Side action buttons ── */}
+      {/* ── LAYER 6: Side action buttons ── */}
       <View style={styles.sideActions}>
         <TouchableOpacity style={styles.sideBtn} onPress={onInfo} activeOpacity={0.75}>
           {profile.photoUrl ? (
@@ -445,6 +401,36 @@ export default function DiscoverScreen({ navigation, route }) {
   const currentIndexRef     = useRef(0);
   const isAdminRef          = useRef(false);
   const suppressScroll      = useRef(false);
+  const likeScale           = useRef(new Animated.Value(0)).current;
+  const likeOpacity         = useRef(new Animated.Value(0)).current;
+
+  const animateLike = useCallback(() => {
+    likeScale.setValue(0);
+    likeOpacity.setValue(1);
+    Animated.sequence([
+      Animated.timing(likeScale, {
+        toValue: 1,
+        duration: 480,
+        easing: Easing.out(Easing.back(1.4)),
+        useNativeDriver: true,
+      }),
+      Animated.delay(900),
+      Animated.parallel([
+        Animated.timing(likeOpacity, {
+          toValue: 0,
+          duration: 520,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(likeScale, {
+          toValue: 0.75,
+          duration: 520,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [likeScale, likeOpacity]);
 
   useEffect(() => {
     loadProfiles();
@@ -746,6 +732,7 @@ export default function DiscoverScreen({ navigation, route }) {
       cardHeight={H}
       dotsTop={insets.top + 44}
       onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
+      animateLike={animateLike}
       onLike={() => handleLike(item, index, false)}
       onPass={() => {
         if (isAdmin) {
@@ -768,7 +755,7 @@ export default function DiscoverScreen({ navigation, route }) {
       onReport={() => navigation.navigate('BlockReport', { profile: item })}
     />
     );
-  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin]);
+  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin, animateLike]);
 
   if (loading) {
     return (
@@ -839,6 +826,12 @@ export default function DiscoverScreen({ navigation, route }) {
         removeClippedSubviews={true}
         onMomentumScrollEnd={onMomentumScrollEnd}
       />
+      <Animated.View
+        style={[styles.likeHeart, { opacity: likeOpacity, transform: [{ scale: likeScale }] }]}
+        pointerEvents="none"
+      >
+        <Text style={{ fontSize: 80 }}>❤️</Text>
+      </Animated.View>
       <View style={styles.headerAbsolute} pointerEvents="box-none">
         <View style={[styles.staticHeader, { paddingTop: insets.top + 46 }]}>
           <View style={styles.headerRight}>
