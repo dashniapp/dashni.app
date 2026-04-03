@@ -18,6 +18,15 @@ import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 
+const calcAge = (dob) => {
+  if (!dob) return null;
+  const d = new Date(dob);
+  const t = new Date();
+  let a = t.getFullYear() - d.getFullYear();
+  if (t < new Date(t.getFullYear(), d.getMonth(), d.getDate())) a--;
+  return a;
+};
+
 // ── Inline video (only renders when on video slide) ──────────────────────────
 function InlineVideo({ uri, isScreenFocused }) {
   const [playing, setPlaying] = useState(true);
@@ -260,15 +269,15 @@ const ProfileCard = memo(function ProfileCard({
             <Ionicons name="checkmark-circle" size={18} color="#3b82f6" />
           )}
         </View>
-        {(profile.locationDisplay || profile.location) ? (
+        {profile.location ? (
           <View style={styles.locRow}>
             <Feather
-              name={profile.isDiaspora ? 'globe' : 'map-pin'}
+              name="map-pin"
               size={12}
               color="rgba(255,255,255,0.6)"
             />
             <Text style={styles.location}>
-              {profile.locationDisplay || profile.location}
+              {profile.location}
             </Text>
           </View>
         ) : null}
@@ -420,21 +429,21 @@ export default function DiscoverScreen({ navigation, route }) {
     Animated.sequence([
       Animated.timing(likeScale, {
         toValue: 1,
-        duration: 480,
+        duration: 700,
         easing: Easing.out(Easing.back(1.4)),
         useNativeDriver: true,
       }),
-      Animated.delay(900),
+      Animated.delay(2000),
       Animated.parallel([
         Animated.timing(likeOpacity, {
           toValue: 0,
-          duration: 520,
+          duration: 700,
           easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(likeScale, {
           toValue: 0.75,
-          duration: 520,
+          duration: 700,
           easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }),
@@ -498,7 +507,7 @@ export default function DiscoverScreen({ navigation, route }) {
 
       const { data: me } = await supabase
         .from('profiles')
-        .select('gender, diaspora_mode, looking_for_gender, is_admin')
+        .select('gender, looking_for_gender, is_admin')
         .eq('id', user.id).single();
 
       const adminUser = me?.is_admin === true;
@@ -520,7 +529,7 @@ export default function DiscoverScreen({ navigation, route }) {
 
       let q = supabase
         .from('profiles')
-        .select('id,name,age,gender,location,bio,interests,has_video,verification_status,hometown,country,diaspora_mode,looking_for,looking_for_gender')
+        .select('id,name,age,dob,gender,location,bio,interests,has_video,verification_status,looking_for,looking_for_gender')
         .neq('id', user.id);
 
       const genderFilter = me?.looking_for_gender;
@@ -528,7 +537,6 @@ export default function DiscoverScreen({ navigation, route }) {
       if (genderFilter === 'Women' || genderFilter === 'Woman') q = q.eq('gender', 'Woman');
       if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
-      if (filters.diaspora) q = q.eq('diaspora_mode', true);
       const excludeIds = [...new Set([...blockedIds, ...likedIds, ...(adminUser ? [] : passedIds)])];
       if (excludeIds.length > 0)
         q = q.not('id', 'in', `(${excludeIds.join(',')})`);
@@ -558,7 +566,7 @@ export default function DiscoverScreen({ navigation, route }) {
           const { data: vi } = supabase.storage
             .from('videos').getPublicUrl(`${p.id}/profile.mp4`);
           const videoUrl = p.has_video && vi?.publicUrl
-            ? `${vi.publicUrl}?v=${Date.now()}` : null;
+            ? `${vi.publicUrl}?v=${p.id.slice(0, 8)}` : null;
 
           // Build ordered slides: all photos first, then video
           const mediaSlides = [
@@ -567,15 +575,9 @@ export default function DiscoverScreen({ navigation, route }) {
           ];
           if (mediaSlides.length === 0) mediaSlides.push({ type: 'empty' });
 
-          let locationDisplay = p.location || '';
-          if (p.hometown && p.location && p.hometown !== p.location) {
-            locationDisplay = `${p.hometown} → ${p.location}`;
-          } else if (p.hometown) {
-            locationDisplay = p.hometown;
-          }
-
           return {
             ...p,
+            age: calcAge(p.dob) ?? p.age,
             initials: p.name?.[0]?.toUpperCase() ?? '?',
             tags: p.interests
               ? p.interests.split(',').map(t => t.trim()).filter(Boolean)
@@ -584,8 +586,6 @@ export default function DiscoverScreen({ navigation, route }) {
             photoUrl: photoUrls[0] || null,
             videoUrl,
             mediaSlides,
-            locationDisplay,
-            isDiaspora: p.diaspora_mode || false,
           };
         }));
 

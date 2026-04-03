@@ -8,3 +8,5 @@ export const setSignupInProgressRef = { current: null };
 
 export const clearLikesBadgeRef    = { current: null };
 export const clearMessagesBadgeRef = { current: null };
+
+export const recheckProfileCompleteRef = { current: null };

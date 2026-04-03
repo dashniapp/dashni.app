@@ -11,6 +11,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
+import { recheckProfileCompleteRef } from '../navigation/refs';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -55,7 +56,6 @@ export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
-  const [diasporaMode, setDiasporaMode] = useState(false);
   const [extraPhotos, setExtraPhotos] = useState([null, null, null, null, null]); // 5 extra slots
   const [uploadingSlot, setUploadingSlot] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -98,10 +98,9 @@ export default function ProfileScreen({ navigation }) {
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (data) {
         setProfile(data);
-        setDiasporaMode(data.diaspora_mode || false);
         if (data.has_video) {
           const { data: vd } = supabase.storage.from('videos').getPublicUrl(`${user.id}/profile.mp4`);
-          if (vd?.publicUrl) setVideoUrl(vd.publicUrl + '?t=' + Date.now());
+          if (vd?.publicUrl) setVideoUrl(vd.publicUrl + '?t=' + user.id.slice(0, 8));
         }
       }
 
@@ -214,20 +213,11 @@ export default function ProfileScreen({ navigation }) {
       if (!res.ok) throw new Error(await res.text());
       await supabase.from('profiles').update({ has_video: true }).eq('id', user.id);
       const { data: vd } = supabase.storage.from('videos').getPublicUrl(`${user.id}/profile.mp4`);
-      setVideoUrl(vd.publicUrl + '?t=' + Date.now());
+      setVideoUrl(vd.publicUrl + '?t=' + user.id.slice(0, 8));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('✅ Video updated!', 'Your new video is live.');
+      Alert.alert('✅ Video uploaded!', 'Your profile video is now live.');
     } catch (e) { Alert.alert('Upload failed', e.message); }
     setUploadingVideo(false);
-  };
-
-  const toggleDiasporaMode = async (val) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setDiasporaMode(val);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('profiles').update({ diaspora_mode: val }).eq('id', user.id);
-    } catch (e) {}
   };
 
   const pickAndUploadExtraPhoto = async (slot) => {
@@ -271,6 +261,7 @@ export default function ProfileScreen({ navigation }) {
           newExtras[slot] = null;
           setExtraPhotos(newExtras);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          recheckProfileCompleteRef.current?.();
         } catch (e) {
           Alert.alert('Error', e.message);
         }
@@ -298,6 +289,7 @@ export default function ProfileScreen({ navigation }) {
           if (error) { Alert.alert('Error', error.message); return; }
           setPhotoUrl(null);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          recheckProfileCompleteRef.current?.();
         } catch (e) {
           Alert.alert('Error', e.message);
         }
@@ -496,34 +488,6 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.photosHint}>Tap to view fullscreen · Long press to delete · Tap + to add</Text>
         </View>
 
-        {/* Diaspora mode toggle */}
-        <View style={styles.diasporaCard}>
-          <View style={styles.diasporaCardLeft}>
-            <Text style={styles.diasporaCardTitle}>
-              {diasporaMode ? '✈️ Diaspora Mode' : '🇦🇱 Local Mode'}
-            </Text>
-            <Text style={styles.diasporaCardSub}>
-              {diasporaMode
-                ? 'Seeing Albanians worldwide'
-                : 'Seeing people near you'}
-            </Text>
-          </View>
-          <View style={styles.diasporaToggleRow}>
-            <TouchableOpacity
-              style={[styles.diasporaToggleBtn, !diasporaMode && styles.diasporaToggleBtnOn]}
-              onPress={() => toggleDiasporaMode(false)}
-            >
-              <Text style={styles.diasporaToggleText}>🇦🇱 Local</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.diasporaToggleBtn, diasporaMode && styles.diasporaToggleBtnOn]}
-              onPress={() => toggleDiasporaMode(true)}
-            >
-              <Text style={styles.diasporaToggleText}>✈️ Diaspora</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Video fullscreen player */}
         <VideoPlayerModal uri={videoUrl} visible={showVideoPlayer} onClose={() => setShowVideoPlayer(false)} />
 
@@ -533,20 +497,16 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.videoMenuSheet}>
             <View style={styles.videoMenuHandle} />
             <Text style={styles.videoMenuTitle}>Video profile</Text>
-            <TouchableOpacity style={styles.videoMenuItem} onPress={pickAndUploadVideo}>
-              <Ionicons name="videocam-outline" size={20} color={colors.textPrimary} />
-              <Text style={styles.videoMenuItemText}>Change video</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.videoMenuItem} onPress={() => {
               setShowVideoMenu(false);
               Alert.alert(
-                'Video required',
-                'A profile video is required on Dashni. You can replace it with a new one, but it cannot be deleted.',
+                'Video is permanent',
+                'Your profile video cannot be changed or deleted. It is part of your identity on Dashni.',
                 [{ text: 'OK' }]
               );
             }}>
               <Feather name="info" size={20} color={colors.textMuted} />
-              <Text style={[styles.videoMenuItemText, { color: colors.textMuted }]}>Why can't I delete?</Text>
+              <Text style={[styles.videoMenuItemText, { color: colors.textMuted }]}>About your video</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.videoMenuItem, { marginTop: 8, backgroundColor: colors.bgSurface, borderRadius: radius.md }]} onPress={() => setShowVideoMenu(false)}>
               <Text style={[styles.videoMenuItemText, { textAlign: 'center', width: '100%' }]}>Cancel</Text>
@@ -724,15 +684,6 @@ const styles = StyleSheet.create({
   tagText: { color: colors.textPrimary, fontSize: 13 },
   editProfileBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginHorizontal: 14, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderLight, borderRadius: radius.full, paddingVertical: 15 },
   editProfileBtnText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
-
-  diasporaCard: { marginHorizontal: 14, marginBottom: 14, backgroundColor: colors.bgCard, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
-  diasporaCardLeft: { gap: 3 },
-  diasporaCardTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
-  diasporaCardSub: { color: colors.textMuted, fontSize: 13 },
-  diasporaToggleRow: { flexDirection: 'row', gap: 8 },
-  diasporaToggleBtn: { flex: 1, paddingVertical: 10, borderRadius: radius.md, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  diasporaToggleBtnOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
-  diasporaToggleText: { color: colors.textSecondary, fontSize: 13, fontWeight: '500' },
 
   // Photo grid
   photosSection: { marginHorizontal: 14, marginBottom: 14 },

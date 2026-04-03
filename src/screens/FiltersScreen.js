@@ -13,7 +13,6 @@ export const FILTER_KEY = 'dashni_filters';
 export const DEFAULT_FILTERS = {
   ageMin: 18,
   ageMax: 99,
-  diaspora: false,
 };
 
 export async function getFilters() {
@@ -28,20 +27,18 @@ export async function getFilters() {
 export default function FiltersScreen({ navigation }) {
   const [ageMin, setAgeMin] = useState(18);
   const [ageMax, setAgeMax] = useState(50);
-  const [diaspora, setDiaspora] = useState(false);
 
   useEffect(() => {
     getFilters().then(f => {
       setAgeMin(f.ageMin);
       setAgeMax(f.ageMax);
-      setDiaspora(f.diaspora ?? false);
     });
   }, []);
 
   const applyFilters = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await AsyncStorage.setItem(FILTER_KEY, JSON.stringify({
-      ageMin, ageMax, diaspora,
+      ageMin, ageMax,
     }));
     navigation.navigate('App', {
       screen: 'Discover',
@@ -51,7 +48,7 @@ export default function FiltersScreen({ navigation }) {
 
   const reset = async () => {
     Haptics.selectionAsync();
-    setAgeMin(18); setAgeMax(50); setDiaspora(false);
+    setAgeMin(18); setAgeMax(50);
     await AsyncStorage.setItem(FILTER_KEY, JSON.stringify(DEFAULT_FILTERS));
   };
 
@@ -97,21 +94,6 @@ export default function FiltersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Diaspora */}
-        <View style={styles.card}>
-          <View style={styles.toggleRow}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={styles.cardTitle}>Diaspora mode ✈️</Text>
-              <Text style={styles.cardSub}>Show Albanians worldwide, not just near you</Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.toggle, diaspora && styles.toggleOn]}
-              onPress={() => { setDiaspora(!diaspora); Haptics.selectionAsync(); }}>
-              <View style={[styles.thumb, diaspora && styles.thumbOn]} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <TouchableOpacity style={styles.applyBtn} onPress={applyFilters} activeOpacity={0.85}>
           <Text style={styles.applyBtnText}>Apply filters</Text>
         </TouchableOpacity>
@@ -138,11 +120,6 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
   chipText: { color: colors.textSecondary, fontSize: 13 },
   chipTextOn: { color: colors.accent, fontWeight: '600' },
-  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  toggle: { width: 50, height: 28, borderRadius: 14, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', paddingHorizontal: 3 },
-  toggleOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  thumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.textMuted },
-  thumbOn: { backgroundColor: '#fff', alignSelf: 'flex-end' },
   applyBtn: { backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 15, alignItems: 'center', marginTop: 4 },
   applyBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

@@ -33,7 +33,7 @@ export default function AdminRewindScreen({ navigation }) {
         .select(`
           profile_id,
           created_at,
-          profiles (id, name, age, gender, location, bio, has_video, verification_status, hometown, diaspora_mode)
+          profiles (id, name, age, gender, location, bio, has_video, verification_status, hometown)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -46,18 +46,11 @@ export default function AdminRewindScreen({ navigation }) {
           const { data: ph } = supabase.storage.from('avatars').getPublicUrl(`${p.id}/avatar.jpg`);
           const { data: vi } = supabase.storage.from('videos').getPublicUrl(`${p.id}/profile.mp4`);
 
-          let locationDisplay = p.location || '';
-          if (p.hometown && p.location && p.hometown !== p.location) {
-            locationDisplay = `${p.hometown} → ${p.location}`;
-          } else if (p.hometown) {
-            locationDisplay = p.hometown;
-          }
-
           return {
             ...p,
             photoUrl: ph?.publicUrl ? `${ph.publicUrl}?t=${p.id}` : null,
             videoUrl: p.has_video && vi?.publicUrl ? vi.publicUrl : null,
-            locationDisplay,
+            locationDisplay: p.location || '',
             seenAt: row.created_at,
           };
         });
@@ -202,7 +195,7 @@ export default function AdminRewindScreen({ navigation }) {
         </View>
         {current?.locationDisplay ? (
           <View style={styles.locRow}>
-            <Feather name={current.diaspora_mode ? 'globe' : 'map-pin'} size={12} color="rgba(255,255,255,0.55)" />
+            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.55)" />
             <Text style={styles.location}>{current.locationDisplay}</Text>
           </View>
         ) : null}

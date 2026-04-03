@@ -12,7 +12,7 @@ import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import {
   onProfileCompleteRef, ignoreAuthChangeRef, setSignupInProgressRef,
-  clearLikesBadgeRef, clearMessagesBadgeRef,
+  clearLikesBadgeRef, clearMessagesBadgeRef, recheckProfileCompleteRef,
 } from './refs';
 
 // Screens
@@ -323,6 +323,7 @@ export default function RootNavigator() {
 
   onProfileCompleteRef.current  = () => setProfileComplete(true);
   setSignupInProgressRef.current = setSignupInProgress;
+  recheckProfileCompleteRef.current = () => { if (session?.user) checkProfile(session.user.id); };
 
   if (loading || profileChecking) return null;
 
