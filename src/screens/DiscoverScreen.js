@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { getFilters } from './FiltersScreen';
 import { colors, radius } from '../theme';
+import { recheckProfileCompleteRef } from '../navigation/refs';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -424,7 +425,7 @@ export default function DiscoverScreen({ navigation, route }) {
   const likeOpacity         = useRef(new Animated.Value(0)).current;
 
   const animateLike = useCallback(() => {
-    likeScale.setValue(0);
+    likeScale.setValue(0.3);
     likeOpacity.setValue(1);
     Animated.sequence([
       Animated.timing(likeScale, {
@@ -454,6 +455,7 @@ export default function DiscoverScreen({ navigation, route }) {
   useEffect(() => {
     loadProfiles();
     const focusSub = navigation.addListener('focus', () => {
+      recheckProfileCompleteRef.current?.();
       setIsScreenFocused(true);
       requestAnimationFrame(() => {
         if (flatListRef.current && profilesRef.current.length > 0) {
@@ -720,7 +722,9 @@ export default function DiscoverScreen({ navigation, route }) {
       setCurrentIndex(0);
       setProfiles(trimmed);
       requestAnimationFrame(() => {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+        requestAnimationFrame(() => {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+        });
       });
     } else {
       currentIndexRef.current = idx;
@@ -947,7 +951,7 @@ const styles = StyleSheet.create({
   tapRight: { position: 'absolute', right: 80, top: 0, bottom: 220, width: '38%', zIndex: 5 },
 
   // Like animation
-  likeHeart: { position: 'absolute', top: '35%', alignSelf: 'center', zIndex: 20 },
+  likeHeart: { position: 'absolute', top: '35%', alignSelf: 'center', zIndex: 20, elevation: 30 },
 
   // Side buttons
   sideActions:         { position: 'absolute', right: 14, bottom: 200, gap: 18, alignItems: 'center', zIndex: 10 },
