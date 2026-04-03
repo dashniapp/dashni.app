@@ -17,25 +17,10 @@ export default function VideoUploadScreen({ navigation }) {
   const [videoUri, setVideoUri] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
-  const [alreadyHasVideo, setAlreadyHasVideo] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   const player = useVideoPlayer(videoUri, p => {
     if (p) { p.loop = true; }
   });
-
-  useEffect(() => {
-    checkExistingVideo();
-  }, []);
-
-  const checkExistingVideo = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data } = await supabase.from('profiles').select('has_video').eq('id', user.id).single();
-      if (data?.has_video) setAlreadyHasVideo(true);
-    } catch (e) {}
-    setLoading(false);
-  };
 
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -114,16 +99,6 @@ export default function VideoUploadScreen({ navigation }) {
     setUploading(false);
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={colors.accent} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -134,24 +109,8 @@ export default function VideoUploadScreen({ navigation }) {
         <View style={{ width: 30 }} />
       </View>
 
-      {alreadyHasVideo && !videoUri ? (
-        <View style={styles.content}>
-          <View style={styles.lockedCard}>
-            <Ionicons name="videocam" size={40} color={colors.accent} />
-            <Text style={styles.lockedTitle}>Video uploaded</Text>
-            <Text style={styles.lockedSub}>You already have a profile video. Each account can only have one video to keep Dashni authentic.</Text>
-            <View style={styles.lockedBadge}>
-              <Feather name="lock" size={13} color={colors.accent} />
-              <Text style={styles.lockedBadgeText}>1 video per account</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.backBtn2} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn2Text}>Back to profile</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          {videoUri ? (
+      <>
+        {videoUri ? (
             <View style={styles.previewWrap}>
               <VideoView
                 player={player}
@@ -178,7 +137,7 @@ export default function VideoUploadScreen({ navigation }) {
           <View style={styles.bottomSection}>
             <View style={styles.limitBanner}>
               <Feather name="info" size={14} color="#3b82f6" />
-              <Text style={styles.limitText}>One video per account · Max 15 seconds · Cannot be changed</Text>
+              <Text style={styles.limitText}>One video per account · Max 15 seconds · Cannot be deleted</Text>
             </View>
 
             <View style={styles.tipsCard}>
@@ -203,7 +162,7 @@ export default function VideoUploadScreen({ navigation }) {
             {videoUri && (
               <TouchableOpacity
                 style={[styles.uploadBtn, uploading && { opacity: 0.7 }]}
-                onPress={() => Alert.alert('Upload this video?', 'You can only upload one video and it cannot be changed later.', [
+                onPress={() => Alert.alert('Upload this video?', 'This will replace your current profile video. You can change it again later, but it cannot be deleted.', [
                   { text: 'Cancel', style: 'cancel' },
                   { text: 'Upload', onPress: uploadVideo },
                 ])}
@@ -216,8 +175,7 @@ export default function VideoUploadScreen({ navigation }) {
               </TouchableOpacity>
             )}
           </View>
-        </>
-      )}
+      </>
     </SafeAreaView>
   );
 }
@@ -227,12 +185,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
   backBtn: { padding: 4 },
   headerTitle: { flex: 1, color: colors.textPrimary, fontSize: 17, fontWeight: '600', textAlign: 'center' },
-  content: { flex: 1, padding: 16, gap: 14 },
-  lockedCard: { backgroundColor: colors.bgCard, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.accentBorder, padding: 24, alignItems: 'center', gap: 12 },
-  lockedTitle: { color: colors.textPrimary, fontSize: 20, fontWeight: '700' },
-  lockedSub: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 21 },
-  lockedBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.accentDim, borderRadius: radius.full, paddingVertical: 6, paddingHorizontal: 12 },
-  lockedBadgeText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
   previewWrap: { width: W - 28, height: H * 0.4, marginHorizontal: 14, borderRadius: radius.lg, overflow: 'hidden', position: 'relative' },
   video: { width: '100%', height: '100%' },
   durationBadge: { position: 'absolute', top: 14, left: 14, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, paddingVertical: 5, paddingHorizontal: 10 },
@@ -253,6 +205,4 @@ const styles = StyleSheet.create({
   btnSecondaryText: { color: colors.textPrimary, fontSize: 13, fontWeight: '500' },
   uploadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 15 },
   uploadBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  backBtn2: { backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.full, paddingVertical: 14, alignItems: 'center' },
-  backBtn2Text: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
 });

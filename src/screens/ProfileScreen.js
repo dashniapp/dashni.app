@@ -497,16 +497,20 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.videoMenuSheet}>
             <View style={styles.videoMenuHandle} />
             <Text style={styles.videoMenuTitle}>Video profile</Text>
+            <TouchableOpacity style={styles.videoMenuItem} onPress={pickAndUploadVideo}>
+              <Ionicons name="videocam-outline" size={20} color={colors.textPrimary} />
+              <Text style={styles.videoMenuItemText}>Change video</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.videoMenuItem} onPress={() => {
               setShowVideoMenu(false);
               Alert.alert(
-                'Video is permanent',
-                'Your profile video cannot be changed or deleted. It is part of your identity on Dashni.',
+                'Video required',
+                'A profile video is required on Dashni. You can replace it with a new one, but it cannot be deleted.',
                 [{ text: 'OK' }]
               );
             }}>
               <Feather name="info" size={20} color={colors.textMuted} />
-              <Text style={[styles.videoMenuItemText, { color: colors.textMuted }]}>About your video</Text>
+              <Text style={[styles.videoMenuItemText, { color: colors.textMuted }]}>Why can't I delete?</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.videoMenuItem, { marginTop: 8, backgroundColor: colors.bgSurface, borderRadius: radius.md }]} onPress={() => setShowVideoMenu(false)}>
               <Text style={[styles.videoMenuItemText, { textAlign: 'center', width: '100%' }]}>Cancel</Text>
