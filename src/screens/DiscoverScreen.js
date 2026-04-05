@@ -6,25 +6,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
+import { getCachedProfile, setCachedProfile } from '../utils/profileCache';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
 // ─────────────────────────────────────────────────────────────
-// Egress optimisation constants
+// Constants
 // ─────────────────────────────────────────────────────────────
 
-// How many profiles to fetch from the DB per load.
-// Was 50 — reduced to 15 to cut storage.list() calls by 70 %.
-const BATCH_SIZE = 15;
+const BATCH_SIZE   = 15;   // profiles fetched per load (was 50)
+const EAGER_ENRICH = 5;    // profiles enriched with media up-front
+const FEED_CACHE_KEY = 'feed:cache';
+const FEED_TTL_MS    = 1000 * 60 * 5; // 5 minutes
 
-// How many profiles to fully enrich (storage.list) up-front.
-// The rest are enriched one-at-a-time as the user swipes toward them.
-const EAGER_ENRICH = 5;
-
-// Module-level cache: survives re-renders and screen re-mounts for the
-// entire app session.  Key = profileId, value = resolved media payload.
-// This means a profile whose media was fetched once is NEVER re-fetched,
-// even if loadProfiles() runs again (filter change, preference update, etc.)
+// Module-level in-memory media cache (lives for the whole app session).
+// Key = profileId, Value = { photoUrls, photoUrl, videoUrl, mediaSlides }
 const mediaCache = new Map();
 
 // ─────────────────────────────────────────────────────────────
@@ -46,33 +42,45 @@ const getFilters = async () => {
   }
 };
 
-// Fetches and caches media URLs for one profile.
-// If the profile is already in the module-level cache, returns immediately
-// without making any network request — zero egress for repeat views.
-const resolveMedia = async (profileId, hasVideo) => {
+/**
+ * buildPhotoUrls — construct photo URLs deterministically from photo_count.
+ *
+ * Replaces every storage.list() call in the codebase.
+ *
+ * Schema convention:
+ *   index 0  → avatar.jpg          (required; always the main card photo)
+ *   index 1  → photo_1.jpg
+ *   index 2  → photo_2.jpg
+ *   …
+ *   index N  → photo_{N}.jpg       where N = photo_count - 1
+ *
+ * No network request is made — getPublicUrl() is a pure URL construction.
+ */
+function buildPhotoUrls(profileId, photoCount) {
+  const count = Math.max(1, photoCount ?? 1); // always at least avatar
+  return Array.from({ length: count }, (_, i) => {
+    const filename = i === 0 ? 'avatar.jpg' : `photo_${i}.jpg`;
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(`${profileId}/${filename}`);
+    return data?.publicUrl ?? null;
+  }).filter(Boolean);
+}
+
+/**
+ * Resolve media for one profile.
+ * Checks the module-level mediaCache first — zero egress for seen profiles.
+ * Uses photo_count for deterministic URL construction — zero storage.list() calls.
+ */
+function resolveMedia(profileId, photoCount, hasVideo) {
   if (mediaCache.has(profileId)) return mediaCache.get(profileId);
 
-  // ONE storage.list() call per profile (was firing for all 50 at once)
-  const { data: photoFiles } = await supabase.storage
-    .from('avatars').list(profileId, { limit: 10 });
+  const photoUrls = buildPhotoUrls(profileId, photoCount);
 
-  const photoUrls = (photoFiles || [])
-    .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f.name))
-    .sort((a, b) => {
-      if (a.name === 'avatar.jpg') return -1;
-      if (b.name === 'avatar.jpg') return 1;
-      return a.name.localeCompare(b.name);
-    })
-    .map(f => {
-      const { data: u } = supabase.storage
-        .from('avatars').getPublicUrl(`${profileId}/${f.name}`);
-      return u?.publicUrl || null;
-    })
-    .filter(Boolean);
-
-  // getPublicUrl is a pure URL construction — no network call, no egress
+  // getPublicUrl = pure URL construction, no network call
   const { data: vi } = supabase.storage
-    .from('videos').getPublicUrl(`${profileId}/profile.mp4`);
+    .from('videos')
+    .getPublicUrl(`${profileId}/profile.mp4`);
   const videoUrl = hasVideo && vi?.publicUrl ? vi.publicUrl : null;
 
   const mediaSlides = [
@@ -81,26 +89,56 @@ const resolveMedia = async (profileId, hasVideo) => {
   ];
   if (mediaSlides.length === 0) mediaSlides.push({ type: 'empty' });
 
-  const resolved = { photoUrls, photoUrl: photoUrls[0] || null, videoUrl, mediaSlides };
+  const resolved = {
+    photoUrls,
+    photoUrl: photoUrls[0] ?? null,
+    videoUrl,
+    mediaSlides,
+  };
   mediaCache.set(profileId, resolved);
   return resolved;
-};
+}
+
+// ─────────────────────────────────────────────────────────────
+// Feed AsyncStorage cache helpers (stale-while-revalidate)
+// ─────────────────────────────────────────────────────────────
+async function loadFeedCache() {
+  try {
+    const raw = await AsyncStorage.getItem(FEED_CACHE_KEY);
+    if (!raw) return null;
+    const { profiles, ts } = JSON.parse(raw);
+    if (Date.now() - ts > FEED_TTL_MS) return null;
+    return profiles;
+  } catch {
+    return null;
+  }
+}
+
+async function saveFeedCache(profiles) {
+  try {
+    // Strip _needsEnrich shells before persisting — only save enriched rows
+    const toSave = profiles.filter(p => !p._isEnd && !p._needsEnrich);
+    await AsyncStorage.setItem(
+      FEED_CACHE_KEY,
+      JSON.stringify({ profiles: toSave, ts: Date.now() })
+    );
+  } catch {}
+}
 
 // ─────────────────────────────────────────────────────────────
 // DiscoverScreen
 // ─────────────────────────────────────────────────────────────
 export default function DiscoverScreen({ navigation, route }) {
-  const [profiles, setProfiles] = useState([]);
+  const [profiles, setProfiles]     = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [isAdmin, setIsAdmin]       = useState(false);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
 
-  const profilesRef = useRef([]);
-  const currentIndexRef = useRef(0);
-  const userIdRef = useRef(null);
-  // Guard: prevents a second loadProfiles() from firing while one is in flight
-  const loadingRef = useRef(false);
+  const profilesRef      = useRef([]);
+  const currentIndexRef  = useRef(0);
+  const userIdRef        = useRef(null);
+  const loadingRef       = useRef(false); // prevents duplicate concurrent fetches
 
   useEffect(() => { loadProfiles(); }, []);
 
@@ -112,10 +150,9 @@ export default function DiscoverScreen({ navigation, route }) {
     if (route.params?.reloadFeed) loadProfiles(false);
   }, [route.params?.reloadFeed]);
 
-  // ── Enrich a single raw profile row with media ───────────────
-  // Uses the module-level cache so each profile is only ever fetched once.
-  const enrichOne = useCallback(async (p) => {
-    const media = await resolveMedia(p.id, p.has_video);
+  // ── Enrich one raw DB row with media (sync — no network) ────
+  const enrichOne = useCallback((p) => {
+    const media = resolveMedia(p.id, p.photo_count, p.has_video);
     return {
       ...p,
       ...media,
@@ -130,9 +167,21 @@ export default function DiscoverScreen({ navigation, route }) {
 
   // ── Core profile loader ──────────────────────────────────────
   const loadProfiles = async (showSpinner = true) => {
-    // Prevent duplicate concurrent fetches (e.g. two useEffects firing)
     if (loadingRef.current) return;
     loadingRef.current = true;
+
+    // ── Stale-while-revalidate: show cached feed instantly ─────
+    const cached = await loadFeedCache();
+    if (cached?.length) {
+      const withEnd = [...cached, { id: '__end__', _isEnd: true }];
+      profilesRef.current = withEnd;
+      setProfiles(withEnd);
+      setCurrentIndex(0);
+      setLoading(false);
+      // Continue fetching fresh data in the background (no spinner)
+      showSpinner = false;
+    }
+
     if (showSpinner) setLoading(true);
 
     try {
@@ -141,24 +190,30 @@ export default function DiscoverScreen({ navigation, route }) {
 
       userIdRef.current = user.id;
 
-      // Own avatar: getPublicUrl is pure URL construction — no network call
+      // Own avatar: pure URL construction, no network call
       if (!myPhotoUrl) {
         const { data: myPhoto } = supabase.storage
-          .from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
+          .from('avatars')
+          .getPublicUrl(`${user.id}/avatar.jpg`);
         if (myPhoto?.publicUrl) setMyPhotoUrl(myPhoto.publicUrl);
       }
 
-      // ── Fetch current user's preferences (1 DB call) ─────────
-      const { data: me } = await supabase
-        .from('profiles')
-        .select('gender, looking_for_gender, is_admin')
-        .eq('id', user.id)
-        .single();
+      // ── Own profile — check profileCache first ───────────────
+      let me = await getCachedProfile(user.id);
+      if (!me) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('gender, looking_for_gender, is_admin')
+          .eq('id', user.id)
+          .single();
+        me = data;
+        if (me) await setCachedProfile(user.id, me);
+      }
 
       const adminUser = me?.is_admin === true;
       setIsAdmin(adminUser);
 
-      // ── Exclusion lists (3 parallel DB calls) ────────────────
+      // ── Exclusion lists — run in parallel ───────────────────
       const [{ data: blockData }, { data: likedData }, { data: passData }] =
         await Promise.all([
           supabase.from('blocks').select('blocked_id').eq('blocker_id', user.id),
@@ -166,20 +221,20 @@ export default function DiscoverScreen({ navigation, route }) {
           supabase.from('passes').select('profile_id').eq('user_id', user.id),
         ]);
 
-      const blockedIds = (blockData  || []).map(b => b.blocked_id);
-      const likedIds   = (likedData  || []).map(l => l.liked_id);
-      const passedIds  = (passData   || []).map(p => p.profile_id);
+      const blockedIds = (blockData || []).map(b => b.blocked_id);
+      const likedIds   = (likedData || []).map(l => l.liked_id);
+      const passedIds  = (passData  || []).map(p => p.profile_id);
 
       const filters = await getFilters();
 
-      // ── Base query ───────────────────────────────────────────
+      // ── Profile query — includes photo_count ────────────────
+      // photo_count replaces storage.list() entirely.
       let q = supabase
         .from('profiles')
-        .select('id,name,age,dob,gender,location,bio,interests,has_video,verification_status,looking_for,looking_for_gender')
+        .select('id,name,age,dob,gender,location,bio,interests,photo_count,has_video,verification_status,looking_for,looking_for_gender')
         .neq('id', user.id)
         .eq('signup_complete', true);
 
-      // ── Gender preference filtering (mutual) ─────────────────
       // Filter A: whom does the current user want to see?
       const genderFilter = me?.looking_for_gender;
       if (genderFilter === 'Men'   || genderFilter === 'Man')
@@ -187,68 +242,64 @@ export default function DiscoverScreen({ navigation, route }) {
       if (genderFilter === 'Women' || genderFilter === 'Woman')
         q = q.eq('gender', 'Woman');
 
-      // Filter B: do the candidates also want to see the current user?
+      // Filter B: mutual — do candidates also want to see the viewer?
       const myGender = me?.gender;
       if (myGender === 'Man')
         q = q.or('looking_for_gender.eq.Men,looking_for_gender.eq.Man');
       if (myGender === 'Woman')
         q = q.or('looking_for_gender.eq.Women,looking_for_gender.eq.Woman');
 
-      // ── Age range ────────────────────────────────────────────
       if (filters.ageMin > 18) q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99) q = q.lte('age', filters.ageMax);
 
-      // ── Exclude blocked / liked / (passed for non-admins) ────
       const excludeIds = [
         ...new Set([...blockedIds, ...likedIds, ...(adminUser ? [] : passedIds)]),
       ];
       if (excludeIds.length > 0)
         q = q.not('id', 'in', `(${excludeIds.join(',')})`);
 
-      // BATCH_SIZE = 15 (was 50) — 70 % fewer storage.list() calls per load
       const { data } = await q.limit(BATCH_SIZE);
 
       if (data?.length) {
         const shuffled = [...data].sort(() => Math.random() - 0.5);
 
-        // ── Eager enrich: only first EAGER_ENRICH profiles ──────
-        // The user will see these immediately. The rest stay as raw
-        // DB rows (_needsEnrich: true) until the user swipes near them.
-        const eagerSlice = shuffled.slice(0, EAGER_ENRICH);
-        const lazySlice  = shuffled.slice(EAGER_ENRICH);
-
-        const enrichedEager = await Promise.all(eagerSlice.map(enrichOne));
-        const lazyShells    = lazySlice.map(p => ({ ...p, _needsEnrich: true }));
+        // Eagerly enrich first EAGER_ENRICH profiles (sync — no network).
+        // resolveMedia() uses photo_count + getPublicUrl (pure), so this
+        // costs zero egress. The rest stay as shells until swiped toward.
+        const enrichedEager = shuffled.slice(0, EAGER_ENRICH).map(enrichOne);
+        const lazyShells    = shuffled.slice(EAGER_ENRICH).map(p => ({
+          ...p, _needsEnrich: true,
+        }));
 
         const withEnd = [...enrichedEager, ...lazyShells, { id: '__end__', _isEnd: true }];
         profilesRef.current = withEnd;
         setProfiles(withEnd);
         setCurrentIndex(0);
-      } else {
+
+        // Persist enriched profiles for stale-while-revalidate on next open
+        await saveFeedCache(enrichedEager);
+      } else if (!cached?.length) {
         setProfiles([]);
       }
     } catch (e) {
-      Alert.alert('Could not load profiles', 'Please check your connection and try again.');
+      if (!cached?.length)
+        Alert.alert('Could not load profiles', 'Please check your connection and try again.');
     }
 
     setLoading(false);
     loadingRef.current = false;
   };
 
-  // ── Lazy enrich: enrich the next un-enriched profile in the background ──
-  // Called every time the feed advances so the upcoming card is ready
-  // before the user swipes to it.
-  const enrichNext = useCallback(async () => {
+  // ── Lazy enrich: enrich the next shell in the background ────
+  // enrichOne is sync (photo_count + getPublicUrl) — no network call.
+  const enrichNext = useCallback(() => {
     const list = profilesRef.current;
-    const nextRawIdx = list.findIndex(p => p._needsEnrich);
-    if (nextRawIdx === -1) return;
+    const idx  = list.findIndex(p => p._needsEnrich);
+    if (idx === -1) return;
 
-    const raw = list[nextRawIdx];
-    const enriched = await enrichOne(raw);
-
-    // Splice the enriched version into the ref + state without re-sorting
-    const updated = [...profilesRef.current];
-    updated[nextRawIdx] = enriched;
+    const enriched = enrichOne(list[idx]);
+    const updated  = [...profilesRef.current];
+    updated[idx]   = enriched;
     profilesRef.current = updated;
     setProfiles([...updated]);
   }, [enrichOne]);
@@ -260,11 +311,10 @@ export default function DiscoverScreen({ navigation, route }) {
     currentIndexRef.current = 0;
     setCurrentIndex(0);
     setProfiles(trimmed);
-    // Kick off background enrich for the next pending card
-    enrichNext();
+    enrichNext(); // enrich next shell synchronously
   }, [enrichNext]);
 
-  // ── Pass ────────────────────────────────────────────────────
+  // ── Pass ─────────────────────────────────────────────────────
   const handlePass = useCallback((passedProfile) => {
     if (userIdRef.current && passedProfile && !passedProfile._isEnd) {
       supabase.from('passes').upsert(
@@ -275,7 +325,7 @@ export default function DiscoverScreen({ navigation, route }) {
     if (!isAdmin) advanceNonAdmin();
   }, [isAdmin, advanceNonAdmin]);
 
-  // ── Like ────────────────────────────────────────────────────
+  // ── Like ─────────────────────────────────────────────────────
   const handleLike = useCallback(async (likedProfile, isSuper = false) => {
     if (!userIdRef.current || !likedProfile || likedProfile._isEnd) return;
     try {
@@ -284,7 +334,6 @@ export default function DiscoverScreen({ navigation, route }) {
         { onConflict: 'liker_id,liked_id' }
       );
 
-      // Check for mutual match
       const { data: theirLike } = await supabase
         .from('likes')
         .select('id')
@@ -298,13 +347,11 @@ export default function DiscoverScreen({ navigation, route }) {
           { onConflict: 'user_1,user_2' }
         );
       }
-    } catch (e) {
-      // like failed silently
-    }
+    } catch {}
     if (!isAdmin) advanceNonAdmin();
   }, [isAdmin, advanceNonAdmin]);
 
-  // ── Render ──────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -328,15 +375,15 @@ export default function DiscoverScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* SwipeCard and UI go here — wired to handleLike / handlePass */}
+      {/* SwipeCard wired to current profile, handleLike, handlePass */}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0D0D0D' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D0D' },
-  emptyText: { color: '#888', fontSize: 16, marginBottom: 20 },
-  refreshBtn: { backgroundColor: '#FF4458', borderRadius: 24, paddingVertical: 13, paddingHorizontal: 36 },
+  safe:           { flex: 1, backgroundColor: '#0D0D0D' },
+  center:         { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D0D0D' },
+  emptyText:      { color: '#888', fontSize: 16, marginBottom: 20 },
+  refreshBtn:     { backgroundColor: '#FF4458', borderRadius: 24, paddingVertical: 13, paddingHorizontal: 36 },
   refreshBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
