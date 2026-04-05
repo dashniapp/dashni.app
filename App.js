@@ -5,10 +5,22 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import RootNavigator from './src/navigation/RootNavigator';
 
+const RC_IOS_KEY = 'test_gvBANbXzwsXkroytTyvktAJQFqg';
+
 export default function App() {
-  useEffect(() => {}, []);
+  useEffect(() => {
+    try {
+      if (Platform.OS === 'ios') {
+        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+        Purchases.configure({ apiKey: RC_IOS_KEY });
+      }
+    } catch (e) {
+      console.warn('RevenueCat init failed:', e.message);
+    }
+  }, []);
 
   return (
     <GestureHandlerRootView style={styles.root}>
