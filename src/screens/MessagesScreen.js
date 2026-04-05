@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndi
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 import { clearMessagesBadgeRef } from '../navigation/refs';
 
 export default function MessagesScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { hasAccess } = usePremium();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -134,14 +136,17 @@ export default function MessagesScreen({ navigation }) {
     <TouchableOpacity
       style={styles.row}
       activeOpacity={0.7}
-      onPress={() => navigation.navigate('Chat', {
-        name: item.name,
-        initials: item.initials,
-        bgColor: '#14102a',
-        accentColor: '#ff6b6b',
-        userId: item.userId,
-        photoUrl: item.photoUrl,
-      })}
+      onPress={() => {
+        if (!hasAccess) { navigation.navigate('Paywall'); return; }
+        navigation.navigate('Chat', {
+          name: item.name,
+          initials: item.initials,
+          bgColor: '#14102a',
+          accentColor: '#ff6b6b',
+          userId: item.userId,
+          photoUrl: item.photoUrl,
+        });
+      }}
     >
       <View style={styles.avatarWrap}>
         {item.photoUrl ? (
@@ -155,12 +160,19 @@ export default function MessagesScreen({ navigation }) {
       </View>
       <View style={styles.content}>
         <View style={styles.nameRow}>
-          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.name}>{hasAccess ? item.name : '???'}</Text>
           <Text style={styles.time}>{item.time}</Text>
         </View>
         <View style={styles.previewRow}>
-          <Text style={styles.preview} numberOfLines={1}>{item.preview}</Text>
-          {item.unread > 0 && (
+          {hasAccess ? (
+            <Text style={styles.preview} numberOfLines={1}>{item.preview}</Text>
+          ) : (
+            <View style={styles.lockedPreview}>
+              <Feather name="lock" size={11} color="rgba(255,255,255,0.3)" />
+              <Text style={styles.lockedPreviewText}>Upgrade to read messages</Text>
+            </View>
+          )}
+          {item.unread > 0 && hasAccess && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadText}>{item.unread}</Text>
             </View>
@@ -219,6 +231,8 @@ const styles = StyleSheet.create({
   time: { color: colors.textMuted, fontSize: 12 },
   previewRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   preview: { color: colors.textSecondary, fontSize: 13, flex: 1 },
+  lockedPreview: { flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 },
+  lockedPreviewText: { color: 'rgba(255,255,255,0.25)', fontSize: 12, fontStyle: 'italic' },
   unreadBadge: { backgroundColor: colors.accent, borderRadius: radius.full, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, marginLeft: 8 },
   unreadText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });

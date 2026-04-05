@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase, SUPABASE_URL } from '../lib/supabase';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 
 const { width: W } = Dimensions.get('window');
@@ -15,6 +16,7 @@ const EMOJI_REACTIONS = ['❤️', '😂', '😮', '😢', '👏', '🔥'];
 
 export default function ChatScreen({ route, navigation }) {
   const { name, initials, bgColor, accentColor, userId, photoUrl } = route.params || {};
+  const { hasAccess } = usePremium();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [myId, setMyId] = useState(null);
@@ -351,7 +353,16 @@ export default function ChatScreen({ route, navigation }) {
           </View>
         )}
 
-        <View style={styles.inputBar}>
+        {!hasAccess && (
+          <TouchableOpacity style={styles.lockedBar} onPress={() => navigation.navigate('Paywall')} activeOpacity={0.85}>
+            <Feather name="lock" size={16} color="rgba(255,255,255,0.4)" />
+            <Text style={styles.lockedBarText}>Upgrade to send messages</Text>
+            <View style={styles.lockedBarBtn}>
+              <Text style={styles.lockedBarBtnText}>Upgrade</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        <View style={[styles.inputBar, !hasAccess && { display: 'none' }]}>
           <TouchableOpacity style={styles.attachBtn} onPress={sendPhoto} disabled={uploading}>
             {uploading
               ? <ActivityIndicator size="small" color={colors.accent} />
@@ -454,6 +465,10 @@ const styles = StyleSheet.create({
   replyBarLabel: { color: colors.accent, fontSize: 11, fontWeight: '600' },
   replyBarText: { color: colors.textSecondary, fontSize: 13 },
   inputBar: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border, gap: 6, backgroundColor: colors.bg },
+  lockedBar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.bg },
+  lockedBarText: { color: 'rgba(255,255,255,0.35)', fontSize: 14, flex: 1 },
+  lockedBarBtn: { backgroundColor: '#e91e8c', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14 },
+  lockedBarBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   attachBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.xl, paddingHorizontal: 14, paddingVertical: 8, color: colors.textPrimary, fontSize: 15, maxHeight: 120 },
   sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
