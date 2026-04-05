@@ -510,6 +510,30 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* Premium upgrade banner — only for free users */}
+        {!isPremium && (
+          <TouchableOpacity
+            style={styles.upgradeBanner}
+            onPress={() => navigation.navigate('Paywall')}
+            activeOpacity={0.88}
+          >
+            <LinearGradient
+              colors={['#e91e8c', '#ff5f40', '#ff9a3c']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={styles.upgradeBannerInner}
+            >
+              <View style={styles.upgradeBannerLeft}>
+                <Ionicons name="star" size={22} color="#fff" />
+                <View>
+                  <Text style={styles.upgradeBannerTitle}>Get Dashni Premium</Text>
+                  <Text style={styles.upgradeBannerSub}>See likes · Unlimited swipes · Boost</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* About */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -587,6 +611,11 @@ const styles = StyleSheet.create({
   statLabel: { color: colors.textMuted, fontSize: 11 },
   statDivider: { width: 1, backgroundColor: colors.border },
   quickActions: { flexDirection: 'row', marginHorizontal: 14, gap: 10, marginBottom: 14 },
+  upgradeBanner: { marginHorizontal: 14, marginBottom: 16, borderRadius: 16, overflow: 'hidden', shadowColor: '#e91e8c', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
+  upgradeBannerInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 18 },
+  upgradeBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  upgradeBannerTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  upgradeBannerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
   quickAction: { flex: 1, alignItems: 'center', gap: 8 },
   quickActionIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   quickActionLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: '500' },
