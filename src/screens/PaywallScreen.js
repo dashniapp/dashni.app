@@ -22,9 +22,9 @@ const FEATURES = [
 
 const PACKAGE_META = {
   '$rc_weekly':      { label: 'Weekly',   period: 'per week'  },
-  '$rc_monthly':     { label: 'Monthly',  period: 'per month', popular: true },
+  '$rc_monthly':     { label: 'Monthly',  period: 'per month' },
   '$rc_two_month':   { label: '2 Months', period: 'every 2 months' },
-  '$rc_three_month': { label: '3 Months', period: 'every 3 months' },
+  '$rc_three_month': { label: '3 Months', period: 'every 3 months', popular: true },
 };
 
 export default function PaywallScreen({ navigation }) {
@@ -46,7 +46,7 @@ export default function PaywallScreen({ navigation }) {
       if (offerings.current?.availablePackages.length > 0) {
         const pkgs = offerings.current.availablePackages;
         setPackages(pkgs);
-        const monthly = pkgs.find(p => p.identifier === '$rc_monthly');
+        const monthly = pkgs.find(p => p.identifier === '$rc_three_month');
         const defaultPkg = monthly || pkgs[0];
         setSelected(defaultPkg.identifier);
         // Scroll to selected plan after a short delay
