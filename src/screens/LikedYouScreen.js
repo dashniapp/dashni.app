@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   emptySub: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
   grid: { paddingHorizontal: 14, paddingBottom: 100 },
   card: { width: CARD_W, aspectRatio: 3 / 4, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.bgCard },
-  blurOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,8,16,0.7)' },
+  blurOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,8,16,0.93)' },
   lockWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: 8 },
   lockCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,107,107,0.2)', borderWidth: 1.5, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
   lockText: { color: '#fff', fontSize: 13, fontWeight: '600' },

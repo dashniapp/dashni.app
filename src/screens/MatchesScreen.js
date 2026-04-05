@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 import { clearLikesBadgeRef } from '../navigation/refs';
 
@@ -20,6 +21,7 @@ export default function MatchesScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState('matches');
+  const { hasAccess } = usePremium();
   const hasLoadedOnce = React.useRef(false);
 
   useEffect(() => {
@@ -78,14 +80,16 @@ export default function MatchesScreen({ navigation }) {
     const list = unique.map(m => {
       const otherId = m.user_1 === user.id ? m.user_2 : m.user_1;
       const profile = profiles?.find(p => p.id === otherId);
+      const isBlurred = !hasAccess;
       const { data: photoData } = supabase.storage.from('avatars').getPublicUrl(`${otherId}/avatar.jpg`);
       return {
         id: m.id,
         userId: otherId,
-        name: profile?.name || 'User',
-        age: profile?.age || '',
+        name: isBlurred ? '???' : (profile?.name || 'User'),
+        age: isBlurred ? '' : (profile?.age || ''),
         initials: profile?.name ? profile.name[0].toUpperCase() : '?',
         photoUrl: photoData?.publicUrl ? photoData.publicUrl + '?t=1' : null,
+        isBlurred,
       };
     });
     setMatches(list.filter(m => !blockedIds.has(m.userId)));
@@ -112,7 +116,7 @@ export default function MatchesScreen({ navigation }) {
 
     const list = unique.map((l, i) => {
       const profile = profiles?.find(p => p.id === l.liker_id);
-      const isBlurred = i > 1; // first 2 visible
+      const isBlurred = !hasAccess; // fully locked for free users
       const { data: photoData } = supabase.storage.from('avatars').getPublicUrl(`${l.liker_id}/avatar.jpg`);
       return {
         id: l.liker_id,
@@ -133,7 +137,7 @@ export default function MatchesScreen({ navigation }) {
       style={styles.card}
       activeOpacity={0.85}
       onPress={() => {
-        if (isLike && item.isBlurred) {
+        if (item.isBlurred) {
           navigation.navigate('Paywall');
           return;
         }
@@ -154,7 +158,7 @@ export default function MatchesScreen({ navigation }) {
         <Image source={{ uri: item.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       )}
       {item.photoUrl && item.isBlurred && (
-        <Image source={{ uri: item.photoUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.15 }]} resizeMode="cover" />
+        <Image source={{ uri: item.photoUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.05 }]} resizeMode="cover" />
       )}
       {item.isBlurred && (
         <View style={styles.blurOverlay}>
@@ -252,7 +256,7 @@ const styles = StyleSheet.create({
   swipeBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   grid: { paddingHorizontal: 14, paddingBottom: 100 },
   card: { width: CARD_W, aspectRatio: 3 / 4, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.bgCard },
-  blurOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,8,16,0.75)', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  blurOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,8,16,0.92)', alignItems: 'center', justifyContent: 'center', gap: 10 },
   lockCircle: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,107,107,0.2)', borderWidth: 1.5, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
   lockText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   superBadge: { position: 'absolute', top: 10, left: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, paddingVertical: 3, paddingHorizontal: 8 },
