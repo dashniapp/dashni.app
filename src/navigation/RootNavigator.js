@@ -267,6 +267,7 @@ function CompleteProfileGate() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CompleteProfile" component={CompleteProfileScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="VideoUpload" component={VideoUploadScreen} />
     </Stack.Navigator>

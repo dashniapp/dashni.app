@@ -66,7 +66,7 @@ export default function CompleteProfileScreen({ navigation }) {
             {/* Photo card */}
             <TouchableOpacity
               style={[styles.card, hasPhoto && styles.cardDone]}
-              onPress={() => { Haptics.selectionAsync(); navigation.navigate('EditProfile'); }}
+              onPress={() => { Haptics.selectionAsync(); navigation.navigate('Profile'); }}
               activeOpacity={0.85}
             >
               <View style={[styles.cardIcon, hasPhoto && styles.cardIconDone]}>
