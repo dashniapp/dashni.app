@@ -1,0 +1,7 @@
+Changes made to ProfileScreen.js:
+1. Removed: const [diasporaMode, setDiasporaMode] = useState(false);
+2. Removed: toggleDiasporaMode function entirely
+3. Removed: diaspora_mode from loadProfile supabase select
+4. Removed: setDiasporaMode(data.diaspora_mode || false); line
+5. Removed: entire diasporaCard JSX block (the Local/Diaspora toggle card)
+6. Removed: diaspora-related StyleSheet entries

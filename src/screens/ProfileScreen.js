@@ -15,7 +15,7 @@ import { colors, radius } from '../theme';
 const { width: W, height: H } = Dimensions.get('window');
 
 function VideoThumb({ uri }) {
-  const player = useVideoPlayer(uri, () => {}); // paused at first frame
+  const player = useVideoPlayer(uri, () => {});
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
 
@@ -55,8 +55,7 @@ export default function ProfileScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
-  const [diasporaMode, setDiasporaMode] = useState(false);
-  const [extraPhotos, setExtraPhotos] = useState([null, null, null, null, null]); // 5 extra slots
+  const [extraPhotos, setExtraPhotos] = useState([null, null, null, null, null]);
   const [uploadingSlot, setUploadingSlot] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [showVideoMenu, setShowVideoMenu] = useState(false);
@@ -77,31 +76,24 @@ export default function ProfileScreen({ navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load profile data
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (data) {
         setProfile(data);
-        setDiasporaMode(data.diaspora_mode || false);
         if (data.has_video) {
           const { data: vd } = supabase.storage.from('videos').getPublicUrl(`${user.id}/profile.mp4`);
           if (vd?.publicUrl) setVideoUrl(vd.publicUrl + '?t=' + Date.now());
         }
       }
 
-      // List files FIRST, then check what exists
       let fileList = null;
       for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: files, error } = await supabase.storage
-          .from('avatars')
-          .list(user.id, { limit: 20 });
+        const { data: files } = await supabase.storage.from('avatars').list(user.id, { limit: 20 });
         if (files) { fileList = files; break; }
         await new Promise(r => setTimeout(r, 600));
       }
 
-      // Filter out chat images and other non-profile files
       const existingFiles = new Set((fileList || []).filter(f => !f.name.startsWith('chat_')).map(f => f.name));
 
-      // Main photo
       if (existingFiles.has('avatar.jpg')) {
         const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
         if (urlData?.publicUrl) setPhotoUrl(urlData.publicUrl + '?t=' + Date.now());
@@ -109,7 +101,6 @@ export default function ProfileScreen({ navigation }) {
         setPhotoUrl(null);
       }
 
-      // Extra photos
       const extras = [];
       for (let i = 1; i <= 5; i++) {
         const fileName = `photo_${i}.jpg`;
@@ -134,10 +125,7 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.5,
-      base64: true,
+      mediaTypes: ['images'], allowsEditing: false, quality: 0.5, base64: true,
     });
     if (result.canceled || !result.assets?.[0]?.base64) return;
     setUploading(true);
@@ -145,24 +133,14 @@ export default function ProfileScreen({ navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: { session } } = await supabase.auth.getSession();
       const formData = new FormData();
-      formData.append('file', {
-        uri: result.assets[0].uri,
-        name: 'avatar.jpg',
-        type: 'image/jpeg',
-      });
+      formData.append('file', { uri: result.assets[0].uri, name: 'avatar.jpg', type: 'image/jpeg' });
       const uploadUrl = `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/avatars/${user.id}/avatar.jpg`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'x-upsert': 'true',
-        },
+        headers: { 'Authorization': `Bearer ${session.access_token}`, 'x-upsert': 'true' },
         body: formData,
       });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err);
-      }
+      if (!res.ok) throw new Error(await res.text());
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(`${user.id}/avatar.jpg`);
       setPhotoUrl(urlData.publicUrl + '?t=' + Date.now());
       Alert.alert('✅ Photo updated!', 'Your profile photo is live.');
@@ -202,15 +180,6 @@ export default function ProfileScreen({ navigation }) {
       Alert.alert('✅ Video updated!', 'Your new video is live.');
     } catch (e) { Alert.alert('Upload failed', e.message); }
     setUploadingVideo(false);
-  };
-
-  const toggleDiasporaMode = async (val) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setDiasporaMode(val);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('profiles').update({ diaspora_mode: val }).eq('id', user.id);
-    } catch (e) {}
   };
 
   const pickAndUploadExtraPhoto = async (slot) => {
@@ -254,27 +223,7 @@ export default function ProfileScreen({ navigation }) {
           newExtras[slot] = null;
           setExtraPhotos(newExtras);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (e) {
-          Alert.alert('Error', e.message);
-        }
-      }},
-    ]);
-  };
-
-  const deleteMainPhoto = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Remove main photo', 'Remove your main profile photo?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          const { error } = await supabase.storage.from('avatars').remove([`${user.id}/avatar.jpg`]);
-          if (error) { Alert.alert('Error', error.message); return; }
-          setPhotoUrl(null);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (e) {
-          Alert.alert('Error', e.message);
-        }
+        } catch (e) { Alert.alert('Error', e.message); }
       }},
     ]);
   };
@@ -298,7 +247,6 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={[styles.safe, { paddingTop: insets.top + 40 }]}>
-      {/* Settings button floats at top-right — no extra header row so height matches other tabs */}
       <TouchableOpacity
         style={[styles.settingsBtn, { top: insets.top + 46 }]}
         onPress={() => navigation.navigate('Settings')}
@@ -327,10 +275,7 @@ export default function ProfileScreen({ navigation }) {
             style={styles.heroGradient}
           />
           <View style={styles.cameraBtn}>
-            {uploading
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Feather name="camera" size={16} color="#fff" />
-            }
+            {uploading ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="camera" size={16} color="#fff" />}
           </View>
           <View style={styles.heroInfo}>
             <View style={styles.heroNameRow}>
@@ -344,7 +289,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
-        {/* Photo required banner */}
         {!photoUrl && (
           <TouchableOpacity style={styles.photoBanner} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); pickAndUploadPhoto(); }}>
             <Feather name="alert-circle" size={16} color="#ff9800" />
@@ -353,14 +297,13 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* ── My Photos grid ── */}
+        {/* Photos & Video */}
         <View style={styles.photosSection}>
           <View style={styles.photosSectionHeader}>
             <Text style={styles.photosSectionTitle}>My Photos & Video</Text>
             <Text style={styles.photosSectionSub}>{[photoUrl, ...extraPhotos].filter(Boolean).length} photos{videoUrl ? ' · 1 video' : ''}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -14 }} contentContainerStyle={{ paddingHorizontal: 14, gap: 10, flexDirection: 'row' }}>
-            {/* Main photo */}
             <TouchableOpacity
               style={styles.photoCell}
               onPress={() => photoUrl ? setSelectedPhoto(photoUrl) : pickAndUploadPhoto()}
@@ -370,24 +313,17 @@ export default function ProfileScreen({ navigation }) {
               {photoUrl ? (
                 <>
                   <Image source={{ uri: photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                  <View style={styles.mainBadge}>
-                    <Text style={styles.mainBadgeText}>Main</Text>
-                  </View>
-                  <View style={styles.editPhotoBtn}>
-                    <Feather name="edit-2" size={11} color="#fff" />
-                  </View>
+                  <View style={styles.mainBadge}><Text style={styles.mainBadgeText}>Main</Text></View>
+                  <View style={styles.editPhotoBtn}><Feather name="edit-2" size={11} color="#fff" /></View>
                 </>
               ) : (
                 <View style={styles.photoAddWrap}>
-                  <View style={styles.photoAddCircle}>
-                    <Feather name="camera" size={22} color={colors.accent} />
-                  </View>
+                  <View style={styles.photoAddCircle}><Feather name="camera" size={22} color={colors.accent} /></View>
                   <Text style={styles.photoAddLabel}>Main photo</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            {/* Video cell */}
             {videoUrl ? (
               <TouchableOpacity
                 style={styles.photoCell}
@@ -409,27 +345,18 @@ export default function ProfileScreen({ navigation }) {
                       <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>TAP · HOLD ···</Text>
                     </View>
                   </View>
-                  <View style={styles.videoThumbDots}>
-                    <Feather name="more-horizontal" size={16} color="#fff" />
-                  </View>
+                  <View style={styles.videoThumbDots}><Feather name="more-horizontal" size={16} color="#fff" /></View>
                 </View>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                style={styles.photoCell}
-                onPress={pickAndUploadVideo}
-                activeOpacity={0.85}
-              >
+              <TouchableOpacity style={styles.photoCell} onPress={pickAndUploadVideo} activeOpacity={0.85}>
                 <View style={styles.photoAddWrap}>
-                  <View style={styles.photoAddCircleSm}>
-                    <Ionicons name="videocam-outline" size={20} color={colors.textMuted} />
-                  </View>
+                  <View style={styles.photoAddCircleSm}><Ionicons name="videocam-outline" size={20} color={colors.textMuted} /></View>
                   <Text style={{ color: colors.textMuted, fontSize: 10, marginTop: 4 }}>Add video</Text>
                 </View>
               </TouchableOpacity>
             )}
 
-            {/* Only show filled extra photos - NO X button */}
             {extraPhotos.map((url, i) => {
               if (!url && uploadingSlot !== i) return null;
               return (
@@ -449,7 +376,6 @@ export default function ProfileScreen({ navigation }) {
               );
             })}
 
-            {/* Single + button to add next photo */}
             {extraPhotos.filter(Boolean).length < 5 && (
               <TouchableOpacity
                 style={styles.photoCell}
@@ -460,9 +386,7 @@ export default function ProfileScreen({ navigation }) {
                 activeOpacity={0.85}
               >
                 <View style={styles.photoAddWrap}>
-                  <View style={styles.photoAddCircleSm}>
-                    <Feather name="plus" size={20} color={colors.textMuted} />
-                  </View>
+                  <View style={styles.photoAddCircleSm}><Feather name="plus" size={20} color={colors.textMuted} /></View>
                 </View>
               </TouchableOpacity>
             )}
@@ -470,38 +394,8 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.photosHint}>Tap to view fullscreen · Long press to delete · Tap + to add</Text>
         </View>
 
-        {/* Diaspora mode toggle */}
-        <View style={styles.diasporaCard}>
-          <View style={styles.diasporaCardLeft}>
-            <Text style={styles.diasporaCardTitle}>
-              {diasporaMode ? '✈️ Diaspora Mode' : '🇦🇱 Local Mode'}
-            </Text>
-            <Text style={styles.diasporaCardSub}>
-              {diasporaMode
-                ? 'Seeing Albanians worldwide'
-                : 'Seeing people near you'}
-            </Text>
-          </View>
-          <View style={styles.diasporaToggleRow}>
-            <TouchableOpacity
-              style={[styles.diasporaToggleBtn, !diasporaMode && styles.diasporaToggleBtnOn]}
-              onPress={() => toggleDiasporaMode(false)}
-            >
-              <Text style={styles.diasporaToggleText}>🇦🇱 Local</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.diasporaToggleBtn, diasporaMode && styles.diasporaToggleBtnOn]}
-              onPress={() => toggleDiasporaMode(true)}
-            >
-              <Text style={styles.diasporaToggleText}>✈️ Diaspora</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Video fullscreen player */}
         <VideoPlayerModal uri={videoUrl} visible={showVideoPlayer} onClose={() => setShowVideoPlayer(false)} />
 
-        {/* Video options menu */}
         <Modal visible={showVideoMenu} transparent animationType="slide" onRequestClose={() => setShowVideoMenu(false)}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setShowVideoMenu(false)} />
           <View style={styles.videoMenuSheet}>
@@ -532,7 +426,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </Modal>
 
-        {/* Fullscreen photo modal */}
         <Modal visible={!!selectedPhoto} transparent animationType="fade" onRequestClose={() => setSelectedPhoto(null)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.97)', alignItems: 'center', justifyContent: 'center' }}>
             {selectedPhoto && <Image source={{ uri: selectedPhoto }} style={{ width: W, height: H * 0.85 }} resizeMode="contain" />}
@@ -586,7 +479,7 @@ export default function ProfileScreen({ navigation }) {
             </LinearGradient>
             <Text style={styles.quickActionLabel}>Photo</Text>
           </TouchableOpacity>
-<TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('Paywall')}>
+          <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('Paywall')}>
             <LinearGradient colors={['#d97706', '#f59e0b']} style={styles.quickActionIcon}>
               <Ionicons name="star" size={18} color="#fff" />
             </LinearGradient>
@@ -612,7 +505,6 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.bioText}>{bio}</Text>
         </View>
 
-        {/* Interests */}
         {tags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -624,30 +516,18 @@ export default function ProfileScreen({ navigation }) {
             </View>
             <View style={styles.tagsWrap}>
               {tags.map((tag, i) => (
-                <View key={i} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
+                <View key={i} style={styles.tag}><Text style={styles.tagText}>{tag}</Text></View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Edit profile button */}
-        <TouchableOpacity
-          style={styles.editProfileBtn}
-          onPress={() => navigation.navigate('EditProfile')}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate('EditProfile')} activeOpacity={0.85}>
           <Feather name="edit" size={16} color={colors.textPrimary} />
           <Text style={styles.editProfileBtnText}>Edit full profile</Text>
         </TouchableOpacity>
 
-        {/* Settings */}
-        <TouchableOpacity
-          style={[styles.editProfileBtn, { marginTop: 10, borderColor: 'rgba(255,255,255,0.05)' }]}
-          onPress={() => navigation.navigate('Settings')}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={[styles.editProfileBtn, { marginTop: 10, borderColor: 'rgba(255,255,255,0.05)' }]} onPress={() => navigation.navigate('Settings')} activeOpacity={0.85}>
           <Feather name="settings" size={16} color={colors.textSecondary} />
           <Text style={[styles.editProfileBtnText, { color: colors.textSecondary }]}>Settings</Text>
         </TouchableOpacity>
@@ -702,35 +582,19 @@ const styles = StyleSheet.create({
   tagText: { color: colors.textPrimary, fontSize: 13 },
   editProfileBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginHorizontal: 14, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.borderLight, borderRadius: radius.full, paddingVertical: 15 },
   editProfileBtnText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
-
-  diasporaCard: { marginHorizontal: 14, marginBottom: 14, backgroundColor: colors.bgCard, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 16, gap: 12 },
-  diasporaCardLeft: { gap: 3 },
-  diasporaCardTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
-  diasporaCardSub: { color: colors.textMuted, fontSize: 13 },
-  diasporaToggleRow: { flexDirection: 'row', gap: 8 },
-  diasporaToggleBtn: { flex: 1, paddingVertical: 10, borderRadius: radius.md, backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  diasporaToggleBtnOn: { backgroundColor: colors.accentDim, borderColor: colors.accentBorder },
-  diasporaToggleText: { color: colors.textSecondary, fontSize: 13, fontWeight: '500' },
-
-  // Photo grid
   photosSection: { marginHorizontal: 14, marginBottom: 14 },
   photosSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   photosSectionTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '700' },
   photosSectionSub: { color: colors.textMuted, fontSize: 13 },
-  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoCell: { width: 120, height: 160, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-
   mainBadge: { position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius.full, paddingVertical: 3, paddingHorizontal: 8 },
   mainBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   editPhotoBtn: { position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  removePhotoBtn: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center' },
   photoAddWrap: { alignItems: 'center', gap: 6 },
   photoAddCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accentDim, borderWidth: 1.5, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
   photoAddCircleSm: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bgCard, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   photoAddLabel: { color: colors.accent, fontSize: 11, fontWeight: '600' },
   photosHint: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 10 },
-  videoThumbContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  videoThumbLabel: { color: colors.accent, fontSize: 11, fontWeight: '600' },
   videoThumbDots: { position: 'absolute', top: 6, right: 6 },
   videoMenuSheet: { backgroundColor: colors.bgCard, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 4, paddingBottom: 40 },
   videoMenuHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 16 },

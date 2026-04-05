@@ -18,7 +18,6 @@ import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 
-// ── Inline video (only renders when on video slide) ──────────────────────────
 function InlineVideo({ uri, isScreenFocused }) {
   const [playing, setPlaying] = useState(true);
   const player = useVideoPlayer(uri, p => {
@@ -26,13 +25,8 @@ function InlineVideo({ uri, isScreenFocused }) {
   });
 
   useEffect(() => {
-    if (!isScreenFocused) {
-      player.pause();
-      setPlaying(false);
-    } else {
-      player.play();
-      setPlaying(true);
-    }
+    if (!isScreenFocused) { player.pause(); setPlaying(false); }
+    else { player.play(); setPlaying(true); }
   }, [isScreenFocused]);
 
   return (
@@ -44,13 +38,7 @@ function InlineVideo({ uri, isScreenFocused }) {
       }}
       activeOpacity={1}
     >
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-        allowsPictureInPicture={false}
-      />
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} allowsPictureInPicture={false} />
       {!playing && (
         <View style={styles.videoOverlay}>
           <View style={styles.videoPlayBtn}>
@@ -62,66 +50,35 @@ function InlineVideo({ uri, isScreenFocused }) {
   );
 }
 
-// ── Profile card ─────────────────────────────────────────────────────────────
 const ProfileCard = memo(function ProfileCard({
   profile, isActive, isScreenFocused, onInfo, onLike, onPass, onMessage, onReport, cardHeight, dotsTop,
 }) {
-  const likeScale  = useRef(new Animated.Value(0)).current;
+  const likeScale = useRef(new Animated.Value(0)).current;
   const likeOpacity = useRef(new Animated.Value(0)).current;
   const [slideIndex, setSlideIndex] = useState(0);
 
-  // Reset to first slide when card goes off screen
-  useEffect(() => {
-    if (!isActive) setSlideIndex(0);
-  }, [isActive]);
+  useEffect(() => { if (!isActive) setSlideIndex(0); }, [isActive]);
 
-  // Use pre-built mediaSlides from loadProfiles (all photos + video)
   const slides = profile?.mediaSlides?.length ? profile.mediaSlides : [{ type: 'empty' }];
-
   const totalSlides = slides.length;
   const currentSlide = slides[slideIndex] || slides[0];
 
   const goNext = () => {
-    if (slideIndex < totalSlides - 1) {
-      setSlideIndex(s => s + 1);
-      Haptics.selectionAsync();
-    }
+    if (slideIndex < totalSlides - 1) { setSlideIndex(s => s + 1); Haptics.selectionAsync(); }
   };
-
   const goPrev = () => {
-    if (slideIndex > 0) {
-      setSlideIndex(s => s - 1);
-      Haptics.selectionAsync();
-    }
+    if (slideIndex > 0) { setSlideIndex(s => s - 1); Haptics.selectionAsync(); }
   };
 
   const animateLike = () => {
     likeScale.setValue(0);
     likeOpacity.setValue(1);
     Animated.sequence([
-      // Pop in with a smooth overshoot — feels satisfying and crisp
-      Animated.timing(likeScale, {
-        toValue: 1,
-        duration: 320,
-        easing: Easing.out(Easing.back(1.6)),
-        useNativeDriver: true,
-      }),
-      // Hold so the user clearly sees the heart
+      Animated.timing(likeScale, { toValue: 1, duration: 320, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }),
       Animated.delay(600),
-      // Fade out with a gentle scale-down
       Animated.parallel([
-        Animated.timing(likeOpacity, {
-          toValue: 0,
-          duration: 380,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(likeScale, {
-          toValue: 0.8,
-          duration: 380,
-          easing: Easing.in(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(likeOpacity, { toValue: 0, duration: 380, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+        Animated.timing(likeScale, { toValue: 0.8, duration: 380, easing: Easing.in(Easing.ease), useNativeDriver: true }),
       ]),
     ]).start();
   };
@@ -130,66 +87,38 @@ const ProfileCard = memo(function ProfileCard({
 
   return (
     <View style={[styles.card, cardHeight && { height: cardHeight }]}>
-
-      {/* ── LAYER 1: Background content ── */}
       {currentSlide.type === 'empty' && (
         <LinearGradient colors={['#2a0a1e', '#0d0818']} style={StyleSheet.absoluteFill}>
-          <View style={styles.initialWrap}>
-            <Text style={styles.initial}>{profile.initials}</Text>
-          </View>
+          <View style={styles.initialWrap}><Text style={styles.initial}>{profile.initials}</Text></View>
         </LinearGradient>
       )}
-
       {currentSlide.type === 'photo' && (
-        <Image
-          source={{ uri: currentSlide.url }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: currentSlide.url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       )}
-
       {currentSlide.type === 'video' && isActive && (
         <InlineVideo uri={currentSlide.url} isScreenFocused={isScreenFocused} />
       )}
-
       {currentSlide.type === 'video' && !isActive && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0d0818', alignItems: 'center', justifyContent: 'center' }]}>
           <Ionicons name="play-circle" size={60} color={colors.accent} />
         </View>
       )}
 
-      {/* ── LAYER 2: Gradients (MUST be before dots/UI) ── */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'transparent']}
-        style={styles.topGrad}
-        pointerEvents="none"
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.85)']}
-        style={styles.bottomGrad}
-        pointerEvents="none"
-      />
+      <LinearGradient colors={['rgba(0,0,0,0.55)', 'transparent']} style={styles.topGrad} pointerEvents="none" />
+      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.bottomGrad} pointerEvents="none" />
 
-      {/* ── LAYER 3: Dots (story bar style at top) ── */}
       {totalSlides > 1 && (
         <View style={[styles.dotsRow, { top: dotsTop ?? 56 }]} pointerEvents="none">
           {slides.map((s, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: i === slideIndex
-                    ? (s.type === 'video' ? colors.accent : '#fff')
-                    : 'rgba(255,255,255,0.35)',
-                }
-              ]}
-            />
+            <View key={i} style={[styles.dot, {
+              backgroundColor: i === slideIndex
+                ? (s.type === 'video' ? colors.accent : '#fff')
+                : 'rgba(255,255,255,0.35)',
+            }]} />
           ))}
         </View>
       )}
 
-      {/* ── LAYER 4: VIDEO badge when on video slide ── */}
       {currentSlide.type === 'video' && (
         <View style={[styles.videoBadge, { top: (dotsTop ?? 56) + 14 }]} pointerEvents="none">
           <View style={styles.videoBadgeDot} />
@@ -197,34 +126,13 @@ const ProfileCard = memo(function ProfileCard({
         </View>
       )}
 
-      {/* ── LAYER 5: Tap zones for slide navigation ── */}
-      {slideIndex > 0 && (
-        <TouchableOpacity
-          style={styles.tapLeft}
-          onPress={goPrev}
-          activeOpacity={1}
-        />
-      )}
-      {slideIndex < totalSlides - 1 && (
-        <TouchableOpacity
-          style={styles.tapRight}
-          onPress={goNext}
-          activeOpacity={1}
-        />
-      )}
+      {slideIndex > 0 && <TouchableOpacity style={styles.tapLeft} onPress={goPrev} activeOpacity={1} />}
+      {slideIndex < totalSlides - 1 && <TouchableOpacity style={styles.tapRight} onPress={goNext} activeOpacity={1} />}
 
-      {/* ── LAYER 6: Like animation ── */}
-      <Animated.View
-        style={[styles.likeHeart, {
-          opacity: likeOpacity,
-          transform: [{ scale: likeScale }],
-        }]}
-        pointerEvents="none"
-      >
+      <Animated.View style={[styles.likeHeart, { opacity: likeOpacity, transform: [{ scale: likeScale }] }]} pointerEvents="none">
         <Text style={{ fontSize: 80 }}>❤️</Text>
       </Animated.View>
 
-      {/* ── LAYER 7: Side action buttons ── */}
       <View style={styles.sideActions}>
         <TouchableOpacity style={styles.sideBtn} onPress={onInfo} activeOpacity={0.75}>
           {profile.photoUrl ? (
@@ -237,57 +145,28 @@ const ProfileCard = memo(function ProfileCard({
           <Text style={styles.sideBtnLabel}>Profile</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.sideBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            animateLike();
-            onLike();
-          }}
-          activeOpacity={0.75}
-        >
+        <TouchableOpacity style={styles.sideBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); animateLike(); onLike(); }} activeOpacity={0.75}>
           <View style={[styles.sideBtnCircle, { backgroundColor: colors.accent }]}>
             <AntDesign name="heart" size={22} color="#fff" />
           </View>
           <Text style={styles.sideBtnLabel}>Like</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.sideBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            onPass();
-          }}
-          activeOpacity={0.75}
-        >
+        <TouchableOpacity style={styles.sideBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPass(); }} activeOpacity={0.75}>
           <View style={styles.sideBtnCircle}>
             <AntDesign name="close" size={20} color="#fff" />
           </View>
           <Text style={styles.sideBtnLabel}>Pass</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.sideBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onMessage();
-          }}
-          activeOpacity={0.75}
-        >
+        <TouchableOpacity style={styles.sideBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onMessage(); }} activeOpacity={0.75}>
           <View style={[styles.sideBtnCircle, { borderColor: '#4fc3f7', borderWidth: 1.5 }]}>
             <Feather name="message-circle" size={20} color="#4fc3f7" />
           </View>
           <Text style={styles.sideBtnLabel}>Message</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.sideBtn}
-          onPress={() => {
-            Haptics.selectionAsync();
-            onReport();
-          }}
-          activeOpacity={0.75}
-        >
+        <TouchableOpacity style={styles.sideBtn} onPress={() => { Haptics.selectionAsync(); onReport(); }} activeOpacity={0.75}>
           <View style={styles.sideBtnCircle}>
             <Feather name="more-horizontal" size={20} color="#fff" />
           </View>
@@ -295,36 +174,23 @@ const ProfileCard = memo(function ProfileCard({
         </TouchableOpacity>
       </View>
 
-      {/* ── LAYER 8: Profile info ── */}
       <View style={styles.cardBottom}>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{profile.name}</Text>
           {profile.age ? <Text style={styles.age}>{profile.age}</Text> : null}
-          {profile.verified && (
-            <Ionicons name="checkmark-circle" size={18} color="#3b82f6" />
-          )}
+          {profile.verified && <Ionicons name="checkmark-circle" size={18} color="#3b82f6" />}
         </View>
-        {(profile.locationDisplay || profile.location) ? (
+        {profile.location ? (
           <View style={styles.locRow}>
-            <Feather
-              name={profile.isDiaspora ? 'globe' : 'map-pin'}
-              size={12}
-              color="rgba(255,255,255,0.6)"
-            />
-            <Text style={styles.location}>
-              {profile.locationDisplay || profile.location}
-            </Text>
+            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.6)" />
+            <Text style={styles.location}>{profile.location}</Text>
           </View>
         ) : null}
-        {profile.bio ? (
-          <Text style={styles.bio} numberOfLines={2}>{profile.bio}</Text>
-        ) : null}
+        {profile.bio ? <Text style={styles.bio} numberOfLines={2}>{profile.bio}</Text> : null}
         {profile.tags?.length > 0 && (
           <View style={styles.tagsRow}>
             {profile.tags.slice(0, 3).map((tag, i) => (
-              <View key={i} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
+              <View key={i} style={styles.tag}><Text style={styles.tagText}>{tag}</Text></View>
             ))}
           </View>
         )}
@@ -340,7 +206,6 @@ const ProfileCard = memo(function ProfileCard({
   );
 });
 
-// ── Match Modal ───────────────────────────────────────────────────────────────
 function MatchModal({ matchData, myPhotoUrl, onClose, onMessage }) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const heart1 = useRef(new Animated.Value(0)).current;
@@ -364,10 +229,7 @@ function MatchModal({ matchData, myPhotoUrl, onClose, onMessage }) {
   if (!matchData) return null;
 
   const heartStyle = (anim, offsetX) => ({
-    position: 'absolute',
-    bottom: 120,
-    left: '50%',
-    marginLeft: offsetX,
+    position: 'absolute', bottom: 120, left: '50%', marginLeft: offsetX,
     opacity: anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] }),
     transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -160] }) }],
   });
@@ -427,24 +289,23 @@ const matchStyles = StyleSheet.create({
   skipBtnText: { color: 'rgba(255,255,255,0.5)', fontSize: 14 },
 });
 
-// ── Main screen ───────────────────────────────────────────────────────────────
 export default function DiscoverScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const [profiles, setProfiles]     = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isScreenFocused, setIsScreenFocused] = useState(true);
-  const [matchData, setMatchData]   = useState(null);
+  const [matchData, setMatchData] = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
-  const [isAdmin, setIsAdmin]       = useState(false);
-  const flatListRef         = useRef(null);
-  const profilesRef         = useRef([]);
-  const userIdRef           = useRef(null);
-  const seenRef             = useRef(new Set());
-  const spinAnim            = useRef(new Animated.Value(0)).current;
-  const currentIndexRef     = useRef(0);
-  const isAdminRef          = useRef(false);
-  const suppressScroll      = useRef(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const flatListRef = useRef(null);
+  const profilesRef = useRef([]);
+  const userIdRef = useRef(null);
+  const seenRef = useRef(new Set());
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const currentIndexRef = useRef(0);
+  const isAdminRef = useRef(false);
+  const suppressScroll = useRef(false);
 
   useEffect(() => {
     loadProfiles();
@@ -452,10 +313,7 @@ export default function DiscoverScreen({ navigation, route }) {
       setIsScreenFocused(true);
       requestAnimationFrame(() => {
         if (flatListRef.current && profilesRef.current.length > 0) {
-          flatListRef.current.scrollToOffset({
-            offset: currentIndexRef.current * H,
-            animated: false,
-          });
+          flatListRef.current.scrollToOffset({ offset: currentIndexRef.current * H, animated: false });
         }
         suppressScroll.current = false;
       });
@@ -467,7 +325,6 @@ export default function DiscoverScreen({ navigation, route }) {
     return () => { focusSub(); blurSub(); };
   }, []);
 
-  // Keep refs in sync so scroll callbacks never read stale state
   useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
   useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
 
@@ -480,7 +337,6 @@ export default function DiscoverScreen({ navigation, route }) {
     return () => anim.stop();
   }, [isAdmin]);
 
-  // Reload when filters are applied or a user is blocked
   useEffect(() => {
     if (route.params?.filtersApplied) loadProfiles(true);
   }, [route.params?.filtersApplied]);
@@ -502,48 +358,42 @@ export default function DiscoverScreen({ navigation, route }) {
 
       const { data: me } = await supabase
         .from('profiles')
-        .select('gender, diaspora_mode, looking_for_gender, is_admin')
+        .select('gender, looking_for_gender, is_admin')
         .eq('id', user.id).single();
 
       const adminUser = me?.is_admin === true || user.email === 'bjeshkes@gmail.com';
       setIsAdmin(adminUser);
 
-      const { data: blockData } = await supabase
-        .from('blocks').select('blocked_id').eq('blocker_id', user.id);
+      const { data: blockData } = await supabase.from('blocks').select('blocked_id').eq('blocker_id', user.id);
       const blockedIds = (blockData || []).map(b => b.blocked_id);
 
-      const { data: likedData } = await supabase
-        .from('likes').select('liked_id').eq('liker_id', user.id);
+      const { data: likedData } = await supabase.from('likes').select('liked_id').eq('liker_id', user.id);
       const likedIds = (likedData || []).map(l => l.liked_id);
 
-      const { data: passData } = await supabase
-        .from('passes').select('profile_id').eq('user_id', user.id);
+      const { data: passData } = await supabase.from('passes').select('profile_id').eq('user_id', user.id);
       const passedIds = (passData || []).map(p => p.profile_id);
 
       const filters = await getFilters();
 
       let q = supabase
         .from('profiles')
-        .select('id,name,age,gender,location,bio,interests,has_video,verification_status,hometown,country,diaspora_mode')
+        .select('id,name,age,gender,location,bio,interests,has_video,verification_status,hometown,country')
         .neq('id', user.id);
 
       const genderFilter = me?.looking_for_gender;
-      if (genderFilter === 'Men'   || genderFilter === 'Man')   q = q.eq('gender', 'Man');
+      if (genderFilter === 'Men' || genderFilter === 'Man') q = q.eq('gender', 'Man');
       if (genderFilter === 'Women' || genderFilter === 'Woman') q = q.eq('gender', 'Woman');
-      if (filters.ageMin > 18)  q = q.gte('age', filters.ageMin);
-      if (filters.ageMax < 99)  q = q.lte('age', filters.ageMax);
-      if (filters.diaspora) q = q.eq('diaspora_mode', true);
+      if (filters.ageMin > 18) q = q.gte('age', filters.ageMin);
+      if (filters.ageMax < 99) q = q.lte('age', filters.ageMax);
+
       const excludeIds = [...new Set([...blockedIds, ...likedIds, ...(adminUser ? [] : passedIds)])];
-      if (excludeIds.length > 0)
-        q = q.not('id', 'in', `(${excludeIds.join(',')})`);
+      if (excludeIds.length > 0) q = q.not('id', 'in', `(${excludeIds.join(',')})`);
 
       const { data } = await q.limit(50);
 
       if (data?.length) {
         const enriched = await Promise.all(data.map(async p => {
-          // List all photos in this user's avatars folder
-          const { data: photoFiles } = await supabase.storage
-            .from('avatars').list(p.id, { limit: 20 });
+          const { data: photoFiles } = await supabase.storage.from('avatars').list(p.id, { limit: 20 });
 
           const photoUrls = (photoFiles || [])
             .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f.name))
@@ -553,43 +403,28 @@ export default function DiscoverScreen({ navigation, route }) {
               return a.name.localeCompare(b.name);
             })
             .map(f => {
-              const { data: u } = supabase.storage
-                .from('avatars').getPublicUrl(`${p.id}/${f.name}`);
+              const { data: u } = supabase.storage.from('avatars').getPublicUrl(`${p.id}/${f.name}`);
               return u?.publicUrl ? `${u.publicUrl}?t=${p.id}_${f.name}` : null;
             })
             .filter(Boolean);
 
-          const { data: vi } = supabase.storage
-            .from('videos').getPublicUrl(`${p.id}/profile.mp4`);
-          const videoUrl = p.has_video && vi?.publicUrl
-            ? `${vi.publicUrl}?v=${Date.now()}` : null;
+          const { data: vi } = supabase.storage.from('videos').getPublicUrl(`${p.id}/profile.mp4`);
+          const videoUrl = p.has_video && vi?.publicUrl ? `${vi.publicUrl}?v=${Date.now()}` : null;
 
-          // Build ordered slides: all photos first, then video
           const mediaSlides = [
             ...photoUrls.map(url => ({ type: 'photo', url })),
             ...(videoUrl ? [{ type: 'video', url: videoUrl }] : []),
           ];
           if (mediaSlides.length === 0) mediaSlides.push({ type: 'empty' });
 
-          let locationDisplay = p.location || '';
-          if (p.hometown && p.location && p.hometown !== p.location) {
-            locationDisplay = `${p.hometown} → ${p.location}`;
-          } else if (p.hometown) {
-            locationDisplay = p.hometown;
-          }
-
           return {
             ...p,
             initials: p.name?.[0]?.toUpperCase() ?? '?',
-            tags: p.interests
-              ? p.interests.split(',').map(t => t.trim()).filter(Boolean)
-              : [],
+            tags: p.interests ? p.interests.split(',').map(t => t.trim()).filter(Boolean) : [],
             verified: p.verification_status === 'verified',
             photoUrl: photoUrls[0] || null,
             videoUrl,
             mediaSlides,
-            locationDisplay,
-            isDiaspora: p.diaspora_mode || false,
           };
         }));
 
@@ -607,7 +442,6 @@ export default function DiscoverScreen({ navigation, route }) {
     setLoading(false);
   };
 
-  // Advance non-admin feed by trimming the current profile off the front
   const advanceNonAdmin = useCallback(() => {
     const trimmed = profilesRef.current.slice(1);
     profilesRef.current = trimmed;
@@ -626,11 +460,8 @@ export default function DiscoverScreen({ navigation, route }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await supabase.from('likes').upsert({
-        liker_id: user.id, liked_id: likedProfile.id, is_super: isSuper,
-      });
-      const { data: mutual } = await supabase.from('likes').select('id')
-        .eq('liker_id', likedProfile.id).eq('liked_id', user.id);
+      await supabase.from('likes').upsert({ liker_id: user.id, liked_id: likedProfile.id, is_super: isSuper });
+      const { data: mutual } = await supabase.from('likes').select('id').eq('liker_id', likedProfile.id).eq('liked_id', user.id);
       if (mutual?.length) {
         await supabase.from('matches').upsert({
           user_1: user.id < likedProfile.id ? user.id : likedProfile.id,
@@ -638,10 +469,8 @@ export default function DiscoverScreen({ navigation, route }) {
         });
         setMatchData({ profile: likedProfile });
       }
-    } catch (e) {
-      // Like failed silently — not critical enough to interrupt the user
-    }
-  }, [navigation, advanceNonAdmin]);
+    } catch (e) {}
+  }, [advanceNonAdmin]);
 
   const deleteCurrentProfile = useCallback(() => {
     const target = profilesRef.current[currentIndex];
@@ -690,13 +519,11 @@ export default function DiscoverScreen({ navigation, route }) {
     }
   }, [currentIndex]);
 
-  // Fires exactly once after each swipe animation completes — no cascade risk
   const onMomentumScrollEnd = useCallback((e) => {
     if (suppressScroll.current) return;
     const idx = Math.round(e.nativeEvent.contentOffset.y / H);
     if (idx === currentIndexRef.current) return;
 
-    // Track seen profile (skip end sentinel)
     const profile = profilesRef.current[idx];
     if (profile && !profile._isEnd && userIdRef.current && !seenRef.current.has(profile.id)) {
       seenRef.current.add(profile.id);
@@ -707,7 +534,6 @@ export default function DiscoverScreen({ navigation, route }) {
     }
 
     if (!isAdminRef.current && idx > 0) {
-      // Non-admin: trim so there's nothing above to scroll back to
       const trimmed = profilesRef.current.slice(idx);
       profilesRef.current = trimmed;
       currentIndexRef.current = 0;
@@ -721,6 +547,7 @@ export default function DiscoverScreen({ navigation, route }) {
       setCurrentIndex(idx);
     }
   }, []);
+
   const getItemLayout = useCallback((_, i) => ({ length: H, offset: H * i, index: i }), []);
 
   const renderItem = useCallback(({ item, index }) => {
@@ -738,35 +565,30 @@ export default function DiscoverScreen({ navigation, route }) {
       );
     }
     return (
-    <ProfileCard
-      key={item.id}
-      profile={item}
-      isActive={index === currentIndex}
-      isScreenFocused={isScreenFocused}
-      cardHeight={H}
-      dotsTop={insets.top + 44}
-      onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
-      onLike={() => handleLike(item, index, false)}
-      onPass={() => {
-        if (isAdmin) {
-          if (flatListRef.current && index < profilesRef.current.length - 1)
-            flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
-        } else {
-          advanceNonAdmin();
-        }
-      }}
-      onMessage={() => {
-        navigation.navigate('Chat', {
-          name: item.name,
-          initials: item.initials,
-          bgColor: '#14102a',
-          accentColor: '#ff6b6b',
-          userId: item.id,
-          photoUrl: item.photoUrl,
-        });
-      }}
-      onReport={() => navigation.navigate('BlockReport', { profile: item })}
-    />
+      <ProfileCard
+        key={item.id}
+        profile={item}
+        isActive={index === currentIndex}
+        isScreenFocused={isScreenFocused}
+        cardHeight={H}
+        dotsTop={insets.top + 44}
+        onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
+        onLike={() => handleLike(item, index, false)}
+        onPass={() => {
+          if (isAdmin) {
+            if (flatListRef.current && index < profilesRef.current.length - 1)
+              flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+          } else {
+            advanceNonAdmin();
+          }
+        }}
+        onMessage={() => navigation.navigate('Chat', {
+          name: item.name, initials: item.initials,
+          bgColor: '#14102a', accentColor: '#ff6b6b',
+          userId: item.id, photoUrl: item.photoUrl,
+        })}
+        onReport={() => navigation.navigate('BlockReport', { profile: item })}
+      />
     );
   }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin]);
 
@@ -796,10 +618,7 @@ export default function DiscoverScreen({ navigation, route }) {
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.navigate('Filters')}
-            >
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Filters')}>
               <Feather name="sliders" size={16} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
@@ -854,10 +673,7 @@ export default function DiscoverScreen({ navigation, route }) {
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity
-              style={styles.iconBtn}
-              onPress={() => navigation.navigate('Filters')}
-            >
+            <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Filters')}>
               <Feather name="sliders" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -870,12 +686,9 @@ export default function DiscoverScreen({ navigation, route }) {
         onMessage={() => {
           setMatchData(null);
           navigation.navigate('Chat', {
-            name: matchData.profile.name,
-            initials: matchData.profile.initials,
-            bgColor: '#14102a',
-            accentColor: '#ff6b6b',
-            userId: matchData.profile.id,
-            photoUrl: matchData.profile.photoUrl,
+            name: matchData.profile.name, initials: matchData.profile.initials,
+            bgColor: '#14102a', accentColor: '#ff6b6b',
+            userId: matchData.profile.id, photoUrl: matchData.profile.photoUrl,
           });
         }}
       />
@@ -892,51 +705,25 @@ const styles = StyleSheet.create({
   emptySub:     { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
   emptyBtn:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.accent, borderRadius: radius.full, paddingVertical: 13, paddingHorizontal: 28 },
   emptyBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
   headerAbsolute: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 },
   staticHeader:   { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10 },
   headerRight:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn:        { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-
-  // Card
   card:         { width: W, height: H, backgroundColor: '#000' },
   initialWrap:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
   initial:      { fontSize: 100, fontWeight: '800', color: colors.accent, opacity: 0.15 },
-
-  // Gradients — rendered before interactive UI so they don't block touches
   topGrad:    { position: 'absolute', top: 0, left: 0, right: 0, height: 180 },
   bottomGrad: { position: 'absolute', bottom: 0, left: 0, right: 0, height: H * 0.55 },
-
-  // Story-style dots at top
-  dotsRow: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    gap: 4,
-    zIndex: 10,
-  },
-  dot: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
-  },
-
-  // Video
+  dotsRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', gap: 4, zIndex: 10 },
+  dot: { flex: 1, height: 3, borderRadius: 2 },
   videoOverlay:   { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
   videoPlayBtn:   { width: 68, height: 68, borderRadius: 34, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
   videoBadge:     { position: 'absolute', left: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.6)', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10, zIndex: 10 },
   videoBadgeDot:  { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
   videoBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
-
-  // Tap zones
   tapLeft:  { position: 'absolute', left: 0, top: 0, bottom: 220, width: '38%', zIndex: 5 },
   tapRight: { position: 'absolute', right: 80, top: 0, bottom: 220, width: '38%', zIndex: 5 },
-
-  // Like animation
   likeHeart: { position: 'absolute', top: '35%', alignSelf: 'center', zIndex: 20 },
-
-  // Side buttons
   sideActions:         { position: 'absolute', right: 14, bottom: 200, gap: 18, alignItems: 'center', zIndex: 10 },
   sideBtn:             { alignItems: 'center', gap: 5 },
   sideBtnCircle:       { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
@@ -944,8 +731,6 @@ const styles = StyleSheet.create({
   profileThumb:        { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#fff', overflow: 'hidden' },
   profileThumbFallback:{ backgroundColor: '#14102a', alignItems: 'center', justifyContent: 'center' },
   profileThumbText:    { color: colors.accent, fontSize: 16, fontWeight: '700' },
-
-  // Card info
   cardBottom:  { position: 'absolute', bottom: 100, left: 0, right: 80, paddingHorizontal: 18, gap: 6, zIndex: 10 },
   nameRow:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name:        { color: '#fff', fontSize: 28, fontWeight: '800', letterSpacing: -0.5, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
@@ -958,8 +743,6 @@ const styles = StyleSheet.create({
   tagText:     { color: 'rgba(255,255,255,0.9)', fontSize: 11 },
   swipeHint:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   swipeHintText: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
-
-  // End-of-feed card
   endCard:    { alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.bg },
   endEmoji:   { fontSize: 56 },
   endTitle:   { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },

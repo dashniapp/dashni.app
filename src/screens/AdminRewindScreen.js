@@ -18,9 +18,7 @@ export default function AdminRewindScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const load = async () => {
     setLoading(true);
@@ -33,25 +31,19 @@ export default function AdminRewindScreen({ navigation }) {
         .select(`
           profile_id,
           created_at,
-          profiles (id, name, age, gender, location, bio, has_video, verification_status, hometown, diaspora_mode)
+          profiles (id, name, age, gender, location, bio, has_video, verification_status, hometown)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(200);
 
       const enriched = (data || [])
-        .filter(row => row.profiles) // skip deleted profiles
+        .filter(row => row.profiles)
         .map(row => {
           const p = row.profiles;
           const { data: ph } = supabase.storage.from('avatars').getPublicUrl(`${p.id}/avatar.jpg`);
           const { data: vi } = supabase.storage.from('videos').getPublicUrl(`${p.id}/profile.mp4`);
-
-          let locationDisplay = p.location || '';
-          if (p.hometown && p.location && p.hometown !== p.location) {
-            locationDisplay = `${p.hometown} → ${p.location}`;
-          } else if (p.hometown) {
-            locationDisplay = p.hometown;
-          }
+          const locationDisplay = p.hometown || p.location || '';
 
           return {
             ...p,
@@ -109,7 +101,6 @@ export default function AdminRewindScreen({ navigation }) {
               }
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              // Remove from list and move to next
               setProfiles(prev => {
                 const next = prev.filter((_, i) => i !== index);
                 setIndex(i => Math.min(i, next.length - 1));
@@ -158,7 +149,6 @@ export default function AdminRewindScreen({ navigation }) {
 
   return (
     <View style={styles.safe}>
-      {/* Full-screen photo */}
       {current?.photoUrl
         ? <Image source={{ uri: current.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         : (
@@ -170,11 +160,9 @@ export default function AdminRewindScreen({ navigation }) {
         )
       }
 
-      {/* Gradients */}
       <LinearGradient colors={['rgba(0,0,0,0.65)', 'transparent']} style={styles.topGrad} pointerEvents="none" />
       <LinearGradient colors={['transparent', 'rgba(0,0,0,0.92)']} style={styles.bottomGrad} pointerEvents="none" />
 
-      {/* Top bar */}
       <SafeAreaView edges={['top']} style={styles.topBarWrap}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
@@ -186,12 +174,9 @@ export default function AdminRewindScreen({ navigation }) {
           </View>
           <View style={{ width: 36 }} />
         </View>
-        {seenDate ? (
-          <Text style={styles.seenAt}>Seen {seenDate}</Text>
-        ) : null}
+        {seenDate ? <Text style={styles.seenAt}>Seen {seenDate}</Text> : null}
       </SafeAreaView>
 
-      {/* Profile info + controls */}
       <View style={styles.bottom}>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{current?.name}</Text>
@@ -202,7 +187,7 @@ export default function AdminRewindScreen({ navigation }) {
         </View>
         {current?.locationDisplay ? (
           <View style={styles.locRow}>
-            <Feather name={current.diaspora_mode ? 'globe' : 'map-pin'} size={12} color="rgba(255,255,255,0.55)" />
+            <Feather name="map-pin" size={12} color="rgba(255,255,255,0.55)" />
             <Text style={styles.location}>{current.locationDisplay}</Text>
           </View>
         ) : null}
@@ -210,7 +195,6 @@ export default function AdminRewindScreen({ navigation }) {
           <Text style={styles.bio} numberOfLines={2}>{current.bio}</Text>
         ) : null}
 
-        {/* Nav + Delete */}
         <View style={styles.controls}>
           <TouchableOpacity
             style={[styles.navBtn, index === 0 && styles.navBtnDisabled]}
