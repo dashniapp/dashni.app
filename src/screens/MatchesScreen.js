@@ -165,7 +165,7 @@ export default function MatchesScreen({ navigation }) {
           <View style={styles.lockCircle}>
             <Feather name="lock" size={20} color="#fff" />
           </View>
-          <Text style={styles.lockText}>Unlock with Gold</Text>
+          <Text style={styles.lockText}>Unlock with Premium</Text>
         </View>
       )}
       {item.isSuper && !item.isBlurred && (

@@ -91,7 +91,7 @@ export default function SettingsScreen({ navigation }) {
 
         <Text style={styles.sectionLabel}>Premium</Text>
         <View style={styles.card}>
-          <ROW icon="star" label="Dashni Gold" onPress={() => navigation.navigate('Paywall')} />
+          <ROW icon="star" label="Dashni Premium" onPress={() => navigation.navigate('Paywall')} />
           <ROW icon="zap" label="Boost profile" onPress={() => navigation.navigate('Boost')} />
         </View>
 
