@@ -1,38 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, Dimensions, Image, Animated, ActivityIndicator,
+  Alert, Dimensions, Image, Animated, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Purchases from 'react-native-purchases';
 import { colors, radius } from '../theme';
 
-const { width: W } = Dimensions.get('window');
+const { width: W, height: H } = Dimensions.get('window');
 
 const FEATURES = [
-  { icon: 'eye', label: 'See everyone who liked you' },
-  { icon: 'infinite', label: 'Unlimited swipes' },
-  { icon: 'star', label: '5 Super likes per day' },
-  { icon: 'trending-up', label: 'Daily profile boost' },
-  { icon: 'refresh', label: 'Rewind last swipe' },
-  { icon: 'shield-checkmark', label: 'Priority in discovery' },
-];
-
-const BLURRED_COLORS = [
-  ['#3a0a2e', '#1a0a3e'],
-  ['#0a2a3e', '#0a1a2e'],
-  ['#2e1a0a', '#3e0a1a'],
-  ['#0a3e2a', '#0a1e3e'],
-  ['#3e2a0a', '#1e0a3e'],
+  { icon: 'heart',         label: 'See who liked you',      sub: 'Know exactly who wants to match' },
+  { icon: 'infinite',      label: 'Unlimited swipes',        sub: 'Never run out of likes again' },
+  { icon: 'star',          label: 'Profile boost',           sub: 'Get 10x more views today' },
+  { icon: 'flash',         label: 'Priority in discovery',   sub: 'Be seen before everyone else' },
+  { icon: 'refresh',       label: 'Rewind last swipe',       sub: 'Changed your mind? Go back' },
 ];
 
 const PACKAGE_META = {
-  '$rc_weekly':      { label: 'Weekly',   popular: false },
-  '$rc_monthly':     { label: 'Monthly',  popular: true  },
-  '$rc_two_month':   { label: '2 Months', popular: false },
-  '$rc_three_month': { label: '3 Months', popular: false },
+  '$rc_weekly':      { label: 'Weekly',   period: '/ week',  popular: false },
+  '$rc_monthly':     { label: 'Monthly',  period: '/ month', popular: true  },
+  '$rc_two_month':   { label: '2 Months', period: '/ 2 mo',  popular: false },
+  '$rc_three_month': { label: '3 Months', period: '/ 3 mo',  popular: false },
 };
 
 export default function PaywallScreen({ navigation }) {
@@ -40,32 +31,28 @@ export default function PaywallScreen({ navigation }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 1200, useNativeDriver: false }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: false }),
-      ])
-    ).start();
-  }, []);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     loadOfferings();
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start();
   }, []);
 
   const loadOfferings = async () => {
     try {
       const offerings = await Purchases.getOfferings();
-      if (offerings.current && offerings.current.availablePackages.length > 0) {
+      if (offerings.current?.availablePackages.length > 0) {
         const pkgs = offerings.current.availablePackages;
         setPackages(pkgs);
         const monthly = pkgs.find(p => p.identifier === '$rc_monthly');
         setSelected(monthly ? monthly.identifier : pkgs[0].identifier);
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not load subscription plans. Please try again.');
+      Alert.alert('Error', 'Could not load plans. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -74,7 +61,6 @@ export default function PaywallScreen({ navigation }) {
   const handleSubscribe = async () => {
     const pkg = packages.find(p => p.identifier === selected);
     if (!pkg) return;
-
     setPurchasing(true);
     try {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
@@ -84,9 +70,7 @@ export default function PaywallScreen({ navigation }) {
         ]);
       }
     } catch (e) {
-      if (!e.userCancelled) {
-        Alert.alert('Purchase failed', e.message);
-      }
+      if (!e.userCancelled) Alert.alert('Purchase failed', e.message);
     } finally {
       setPurchasing(false);
     }
@@ -96,167 +80,197 @@ export default function PaywallScreen({ navigation }) {
     try {
       const customerInfo = await Purchases.restorePurchases();
       if (customerInfo.entitlements.active['premium']) {
-        Alert.alert('Restored!', 'Your premium access has been restored.', [
+        Alert.alert('Restored!', 'Your premium is back.', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert('No purchases found', 'We could not find any previous purchases to restore.');
+        Alert.alert('Nothing to restore', 'No previous purchases found.');
       }
     } catch (e) {
-      Alert.alert('Restore failed', e.message);
+      Alert.alert('Error', e.message);
     }
   };
 
-  return (
-    <View style={styles.safe}>
-      <LinearGradient colors={['#1a0010', '#08080f']} style={StyleSheet.absoluteFill} />
+  const selectedPkg = packages.find(p => p.identifier === selected);
 
-      <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
-            <Feather name="x" size={20} color="rgba(255,255,255,0.6)" />
-          </TouchableOpacity>
-          <View style={styles.logoPill}>
-            <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-            <Text style={styles.logoText}>Dashni Premium</Text>
-          </View>
-          <View style={{ width: 36 }} />
-        </View>
+  return (
+    <View style={styles.container}>
+      <LinearGradient colors={['#0d0014', '#0a000f', '#080810']} style={StyleSheet.absoluteFill} />
+
+      {/* Close button */}
+      <SafeAreaView edges={['top']} style={styles.closeWrap}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
+          <Feather name="x" size={18} color="rgba(255,255,255,0.5)" />
+        </TouchableOpacity>
       </SafeAreaView>
 
-      <Animated.ScrollView
+      <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.photosStrip}>
-          {BLURRED_COLORS.map((cols, i) => (
-            <View key={i} style={[styles.photoThumb, i === 2 && styles.photoThumbCenter]}>
-              <LinearGradient colors={cols} style={StyleSheet.absoluteFill} />
-              <View style={styles.initCircle}>
-                <Feather name={i === 2 ? 'heart' : 'lock'} size={i === 2 ? 20 : 14} color={i === 2 ? '#ff6b6b' : 'rgba(255,255,255,0.5)'} />
-              </View>
-              {i !== 2 && <View style={styles.photoBlur} />}
-            </View>
-          ))}
-        </View>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-        <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>You have new likes!</Text>
-          <Text style={styles.heroSub}>Upgrade to see exactly who liked you and match instantly</Text>
-        </View>
-
-        <View style={styles.featuresCard}>
-          {FEATURES.map((f, i) => (
-            <View key={i} style={[styles.featureRow, i < FEATURES.length - 1 && styles.featureRowBorder]}>
-              <View style={styles.featureIconWrap}>
-                <Ionicons name={f.icon} size={16} color={colors.accent} />
-              </View>
-              <Text style={styles.featureLabel}>{f.label}</Text>
-              <Ionicons name="checkmark-circle" size={18} color="#4caf50" />
-            </View>
-          ))}
-        </View>
-
-        {loading ? (
-          <ActivityIndicator color={colors.accent} size="large" style={{ marginVertical: 30 }} />
-        ) : (
-          <View style={styles.plansWrap}>
-            {packages.map((pkg) => {
-              const meta = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, popular: false };
-              const price = pkg.product.priceString;
-              const isSelected = selected === pkg.identifier;
-              return (
-                <TouchableOpacity
-                  key={pkg.identifier}
-                  style={[styles.planCard, isSelected && styles.planCardSelected]}
-                  onPress={() => setSelected(pkg.identifier)}
-                  activeOpacity={0.85}
-                >
-                  {meta.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularText}>Most popular</Text>
-                    </View>
-                  )}
-                  <View style={styles.planLeft}>
-                    <View style={[styles.radio, isSelected && styles.radioActive]}>
-                      {isSelected && <View style={styles.radioDot} />}
-                    </View>
-                    <Text style={styles.planLabel}>{meta.label}</Text>
-                  </View>
-                  <Text style={[styles.planPrice, isSelected && { color: colors.accent }]}>{price}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-
-        <Animated.View style={[styles.ctaWrap, { transform: [{ scale: pulseAnim }] }]}>
-          <TouchableOpacity onPress={handleSubscribe} activeOpacity={0.9} disabled={purchasing || loading}>
+          {/* Hero */}
+          <View style={styles.hero}>
             <LinearGradient
-              colors={['#e91e8c', '#ff6b6b', '#ff9a3c']}
+              colors={['#e91e8c', '#ff6b35']}
+              style={styles.crownWrap}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="star" size={32} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.heroTitle}>Dashni Premium</Text>
+            <Text style={styles.heroSub}>Unlock everything. Match faster.</Text>
+          </View>
+
+          {/* Features */}
+          <View style={styles.featuresWrap}>
+            {FEATURES.map((f, i) => (
+              <View key={i} style={styles.featureRow}>
+                <LinearGradient colors={['#e91e8c22', '#ff6b3511']} style={styles.featureIconWrap}>
+                  <Ionicons name={f.icon} size={18} color="#e91e8c" />
+                </LinearGradient>
+                <View style={styles.featureText}>
+                  <Text style={styles.featureLabel}>{f.label}</Text>
+                  <Text style={styles.featureSub}>{f.sub}</Text>
+                </View>
+                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
+              </View>
+            ))}
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Plans */}
+          {loading ? (
+            <ActivityIndicator color="#e91e8c" size="large" style={{ marginVertical: 30 }} />
+          ) : (
+            <View style={styles.plansWrap}>
+              {packages.map((pkg) => {
+                const meta = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, period: '', popular: false };
+                const isSelected = selected === pkg.identifier;
+                return (
+                  <TouchableOpacity
+                    key={pkg.identifier}
+                    style={[styles.planCard, isSelected && styles.planCardSelected]}
+                    onPress={() => setSelected(pkg.identifier)}
+                    activeOpacity={0.8}
+                  >
+                    {meta.popular && (
+                      <LinearGradient
+                        colors={['#e91e8c', '#ff6b35']}
+                        style={styles.popularBadge}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.popularText}>BEST VALUE</Text>
+                      </LinearGradient>
+                    )}
+                    <View style={styles.planLeft}>
+                      <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                        {isSelected && <View style={styles.radioDot} />}
+                      </View>
+                      <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
+                        {meta.label}
+                      </Text>
+                    </View>
+                    <View style={styles.planRight}>
+                      <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
+                        {pkg.product.priceString}
+                      </Text>
+                      <Text style={styles.planPeriod}>{meta.period}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* CTA */}
+          <TouchableOpacity
+            style={styles.ctaWrap}
+            onPress={handleSubscribe}
+            activeOpacity={0.9}
+            disabled={purchasing || loading}
+          >
+            <LinearGradient
+              colors={['#e91e8c', '#ff5f40', '#ff9a3c']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={styles.ctaBtn}
             >
               {purchasing ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <>
-                  <Ionicons name="star" size={18} color="#fff" />
-                  <Text style={styles.ctaBtnText}>Get Dashni Premium</Text>
-                </>
+                <Text style={styles.ctaText}>
+                  {selectedPkg ? `Start for ${selectedPkg.product.priceString}` : 'Get Premium'}
+                </Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
+
+          <Text style={styles.terms}>
+            Renews automatically · Cancel anytime in App Store
+          </Text>
+
+          <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
+            <Text style={styles.restoreText}>Restore purchases</Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 40 }} />
         </Animated.View>
-
-        <Text style={styles.terms}>Cancel anytime · No hidden fees · Auto-renews</Text>
-
-        <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
-          <Text style={styles.restoreText}>Restore purchases</Text>
-        </TouchableOpacity>
-
-        <View style={{ height: 50 }} />
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: { paddingTop: 100 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  logoPill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,107,107,0.15)', borderWidth: 1, borderColor: colors.accentBorder, borderRadius: radius.full, paddingVertical: 6, paddingHorizontal: 14 },
-  logoImg: { width: 22, height: 22, borderRadius: 6 },
-  logoText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
-  photosStrip: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 24, paddingHorizontal: 20 },
-  photoThumb: { width: 64, height: 80, borderRadius: 12, overflow: 'hidden', position: 'relative' },
-  photoThumbCenter: { width: 80, height: 100, borderRadius: 16, borderWidth: 2.5, borderColor: colors.accent },
-  photoBlur: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,8,16,0.7)' },
-  initCircle: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  heroSection: { alignItems: 'center', paddingHorizontal: 24, marginBottom: 24, gap: 8 },
-  heroTitle: { color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5 },
-  heroSub: { color: 'rgba(255,255,255,0.55)', fontSize: 15, textAlign: 'center', lineHeight: 22 },
-  featuresCard: { marginHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16, overflow: 'hidden' },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  featureRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  featureIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.accentDim, borderWidth: 1, borderColor: colors.accentBorder, alignItems: 'center', justifyContent: 'center' },
-  featureLabel: { color: '#fff', fontSize: 14, flex: 1 },
-  plansWrap: { marginHorizontal: 16, gap: 10, marginBottom: 20 },
-  planCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: radius.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 16, position: 'relative' },
-  planCardSelected: { borderColor: colors.accent, borderWidth: 2, backgroundColor: colors.accentDim },
-  popularBadge: { position: 'absolute', top: -10, left: 16, backgroundColor: colors.accent, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3 },
-  popularText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  planLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
-  radioActive: { borderColor: colors.accent },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
-  planLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  planPrice: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  ctaWrap: { marginHorizontal: 16, borderRadius: radius.full, overflow: 'hidden' },
-  ctaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 17, borderRadius: radius.full },
-  ctaBtnText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
-  terms: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', marginTop: 12 },
-  restoreBtn: { alignItems: 'center', marginTop: 12 },
-  restoreText: { color: 'rgba(255,255,255,0.35)', fontSize: 13, textDecorationLine: 'underline' },
+  container: { flex: 1 },
+  closeWrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingHorizontal: 16, paddingTop: 8 },
+  closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  scroll: { paddingTop: 80, paddingHorizontal: 20 },
+
+  // Hero
+  hero: { alignItems: 'center', paddingVertical: 28, gap: 12 },
+  crownWrap: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: '#e91e8c', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
+  heroTitle: { color: '#fff', fontSize: 30, fontWeight: '800', letterSpacing: -0.5 },
+  heroSub: { color: 'rgba(255,255,255,0.5)', fontSize: 16, textAlign: 'center' },
+
+  // Features
+  featuresWrap: { gap: 4, marginBottom: 24 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4 },
+  featureIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  featureText: { flex: 1 },
+  featureLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  featureSub: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 1 },
+
+  // Divider
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 24 },
+
+  // Plans
+  plansWrap: { gap: 10, marginBottom: 24 },
+  planCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', padding: 18, position: 'relative', overflow: 'hidden' },
+  planCardSelected: { backgroundColor: 'rgba(233,30,140,0.08)', borderColor: '#e91e8c' },
+  popularBadge: { position: 'absolute', top: 0, right: 0, paddingHorizontal: 12, paddingVertical: 4, borderBottomLeftRadius: 12 },
+  popularText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  planLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  radioSelected: { borderColor: '#e91e8c' },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e91e8c' },
+  planLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 16, fontWeight: '600' },
+  planLabelSelected: { color: '#fff' },
+  planRight: { alignItems: 'flex-end' },
+  planPrice: { color: 'rgba(255,255,255,0.7)', fontSize: 18, fontWeight: '800' },
+  planPriceSelected: { color: '#e91e8c' },
+  planPeriod: { color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: 2 },
+
+  // CTA
+  ctaWrap: { borderRadius: 16, overflow: 'hidden', marginBottom: 14, shadowColor: '#e91e8c', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 10 },
+  ctaBtn: { paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
+  ctaText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
+
+  // Footer
+  terms: { color: 'rgba(255,255,255,0.25)', fontSize: 12, textAlign: 'center', marginBottom: 10 },
+  restoreBtn: { alignItems: 'center', paddingVertical: 8 },
+  restoreText: { color: 'rgba(255,255,255,0.3)', fontSize: 13, textDecorationLine: 'underline' },
 });
