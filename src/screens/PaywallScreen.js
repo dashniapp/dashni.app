@@ -189,6 +189,8 @@ export default function PaywallScreen({ navigation }) {
             <Text style={styles.restoreText}>Restore purchases</Text>
           </TouchableOpacity>
 
+          <Text style={styles.genderNote}>Women enjoy free access to all Dashni Premium features.</Text>
+
           <View style={{ height: 120 }} />
         </ScrollView>
 
@@ -214,6 +216,11 @@ export default function PaywallScreen({ navigation }) {
               )}
             </LinearGradient>
           </TouchableOpacity>
+          {selectedPkg && (
+            <Text style={styles.iapDisclosure}>
+              {`${PACKAGE_META[selectedPkg.identifier]?.label || ''} subscription — ${selectedPkg.product.priceString}/${PACKAGE_META[selectedPkg.identifier]?.period || 'period'}. Payment will be charged to your Apple ID at confirmation. Subscription renews automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel subscriptions in your App Store account settings.`}
+            </Text>
+          )}
           <Text style={styles.terms}>Renews automatically · Cancel anytime in App Store</Text>
         </SafeAreaView>
 
@@ -269,11 +276,13 @@ const styles = StyleSheet.create({
   // Restore
   restoreBtn: { alignItems: 'center', paddingVertical: 12 },
   restoreText: { color: 'rgba(255,255,255,0.25)', fontSize: 13, textDecorationLine: 'underline' },
+  genderNote: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', paddingHorizontal: 24 },
 
   // Fixed bottom CTA
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: 'rgba(8,8,16,0.95)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
   ctaWrap: { borderRadius: 16, overflow: 'hidden', shadowColor: '#e91e8c', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 10 },
   ctaBtn: { paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
   ctaText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.2 },
-  terms: { color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginTop: 8, marginBottom: 4 },
+  iapDisclosure: { color: 'rgba(255,255,255,0.2)', fontSize: 10, textAlign: 'center', marginTop: 8, paddingHorizontal: 8, lineHeight: 15 },
+  terms: { color: 'rgba(255,255,255,0.2)', fontSize: 11, textAlign: 'center', marginTop: 4, marginBottom: 4 },
 });

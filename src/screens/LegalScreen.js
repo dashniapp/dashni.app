@@ -52,15 +52,20 @@ You agree NOT to:
 - Post content belonging to minors
 
 5. VIDEO AND PHOTOS
-By uploading content you grant Dashni a license to display it within the app. You confirm you own the rights to any content you upload. Inappropriate content will be removed.
+By uploading content you grant Dashni a license to display it within the app. You confirm you own the rights to any content you upload. Inappropriate content will be removed and may result in account termination.
 
-6. PAYMENTS
-Premium subscriptions are billed through Apple App Store or Google Play. All purchases are final unless required by law.
+6. PAYMENTS AND SUBSCRIPTIONS
+Premium subscriptions are billed through Apple In-App Purchase. Subscription fees are charged to your Apple ID at confirmation. Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings. All purchases are final unless required by law.
 
-7. TERMINATION
+As part of our launch model, female-identifying users receive complimentary access to all Dashni Premium features at no charge. Male-identifying users may access premium features through a paid subscription.
+
+7. CONTENT MODERATION
+Dashni reviews reports of abusive content and accounts. You can report any user by visiting their profile. Our moderation team reviews reports and takes appropriate action, which may include account suspension or termination. For urgent safety concerns contact: support@dashni.app
+
+8. TERMINATION
 We reserve the right to terminate accounts that violate these terms at any time without notice.
 
-8. CONTACT
+9. CONTACT
 For support contact: support@dashni.app`;
 
 export default function LegalScreen({ route, navigation }) {

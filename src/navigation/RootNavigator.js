@@ -37,7 +37,6 @@ import BlockedUsersScreen from '../screens/BlockedUsersScreen';
 import CompleteProfileScreen from '../screens/CompleteProfileScreen';
 import AdminScreen from '../screens/AdminScreen';
 import PaywallScreen from '../screens/PaywallScreen';
-import PremiumScreen from '../screens/PremiumScreen';
 import LegalScreen from '../screens/LegalScreen';
 
 const Stack = createStackNavigator();
@@ -256,7 +255,6 @@ function AppStack() {
       <Stack.Screen name="BlockReport" component={BlockReportScreen} />
       <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <Stack.Screen name="Paywall" component={PaywallScreen} />
-      <Stack.Screen name="Premium" component={PremiumScreen} />
       <Stack.Screen name="Legal" component={LegalScreen} />
       <Stack.Screen name="Admin" component={AdminScreen} />
     </Stack.Navigator>

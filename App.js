@@ -8,13 +8,15 @@ import { StyleSheet } from 'react-native';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import RootNavigator from './src/navigation/RootNavigator';
 
+// TODO: Replace with your RevenueCat PRODUCTION iOS key before App Store submission
+// Get it from: RevenueCat Dashboard → Apps → iOS → Public SDK key
 const RC_IOS_KEY = 'test_gvBANbXzwsXkroytTyvktAJQFqg';
 
 export default function App() {
   useEffect(() => {
     try {
       if (Platform.OS === 'ios') {
-        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+        if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.DEBUG);
         Purchases.configure({ apiKey: RC_IOS_KEY });
       }
     } catch (e) {

@@ -371,7 +371,7 @@ export default function DiscoverScreen({ navigation, route }) {
         .select('gender, looking_for_gender, is_admin')
         .eq('id', user.id).single();
 
-      const adminUser = me?.is_admin === true || user.email === 'bjeshkes@gmail.com';
+      const adminUser = me?.is_admin === true;
       setIsAdmin(adminUser);
 
       const female = me?.gender === 'Woman' || me?.gender === 'Female';

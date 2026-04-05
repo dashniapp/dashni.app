@@ -13,6 +13,22 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Enter your email', 'Type your email address above, then tap Forgot password.');
+      return;
+    }
+    setResetLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    setResetLoading(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      Alert.alert('Check your email', `We sent a password reset link to ${email.trim()}.`);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -75,8 +91,8 @@ export default function LoginScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity style={styles.forgotBtn} onPress={() => Alert.alert('Reset password', 'Check your email for a reset link.')}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
+            <TouchableOpacity style={styles.forgotBtn} onPress={handleForgotPassword} disabled={resetLoading}>
+              <Text style={styles.forgotText}>{resetLoading ? 'Sending...' : 'Forgot password?'}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity

@@ -209,13 +209,6 @@ export default function ChatScreen({ route, navigation }) {
     await supabase.from('messages').update({ reactions }).eq('id', msgId);
   };
 
-  const startCall = (type) => {
-    Alert.alert(
-      type === 'video' ? '📹 Video calls coming soon' : '📞 Voice calls coming soon',
-      "We're working on bringing you seamless calls. This feature will be available in the next update!",
-      [{ text: 'Got it', style: 'default' }]
-    );
-  };
 
   const renderMessage = ({ item }) => {
     const isMe = item.sender_id === myId;
@@ -316,12 +309,6 @@ export default function ChatScreen({ route, navigation }) {
         >
           <Text style={styles.headerName}>{name || 'Chat'}</Text>
           <Text style={styles.headerStatus}>Tap to view profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.callBtn} onPress={() => startCall('voice')}>
-          <Feather name="phone" size={18} color={colors.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.callBtn} onPress={() => startCall('video')}>
-          <Ionicons name="videocam-outline" size={20} color={colors.accent} />
         </TouchableOpacity>
       </View>
 

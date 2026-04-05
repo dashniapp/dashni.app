@@ -29,7 +29,7 @@ export default function BoostScreen({ navigation }) {
             clearInterval(timerRef.current);
             setBoosting(false);
             pulseAnim.stopAnimation();
-            Alert.alert('Boost ended!', 'Your profile boost has finished. You got 10x more views!');
+            Alert.alert('Boost ended!', 'Your profile boost has finished. You were shown to significantly more people!');
             return 0;
           }
           return prev - 1;
@@ -75,7 +75,7 @@ export default function BoostScreen({ navigation }) {
         {boosting ? (
           <>
             <Text style={styles.title}>You're boosted! 🚀</Text>
-            <Text style={styles.sub}>Your profile is being shown to 10x more people right now</Text>
+            <Text style={styles.sub}>Your profile is being shown to significantly more people right now</Text>
             <View style={styles.timerCard}>
               <Text style={styles.timerLabel}>Time remaining</Text>
               <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
@@ -84,14 +84,14 @@ export default function BoostScreen({ navigation }) {
         ) : (
           <>
             <Text style={styles.title}>Boost your profile</Text>
-            <Text style={styles.sub}>Be the top profile in your area for 30 minutes and get 10x more matches</Text>
+            <Text style={styles.sub}>Be the top profile in your area for 30 minutes and get significantly more visibility</Text>
           </>
         )}
 
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statNum}>10x</Text>
+            <Text style={styles.statNum}>↑↑</Text>
             <Text style={styles.statLabel}>More views</Text>
           </View>
           <View style={styles.statDivider} />
@@ -101,7 +101,7 @@ export default function BoostScreen({ navigation }) {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statNum}>3x</Text>
+            <Text style={styles.statNum}>↑↑</Text>
             <Text style={styles.statLabel}>More matches</Text>
           </View>
         </View>
