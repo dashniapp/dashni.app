@@ -1,16 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, Dimensions, Animated, ActivityIndicator,
-  ScrollView, FlatList,
+  Alert, Animated, ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Purchases from 'react-native-purchases';
 import { colors, radius } from '../theme';
-
-const { width: W } = Dimensions.get('window');
 
 const FEATURES = [
   { icon: 'heart',     label: 'See who liked you',    sub: 'Know exactly who wants to match' },
@@ -32,7 +30,6 @@ export default function PaywallScreen({ navigation }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
-  const flatListRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -46,14 +43,8 @@ export default function PaywallScreen({ navigation }) {
       if (offerings.current?.availablePackages.length > 0) {
         const pkgs = offerings.current.availablePackages;
         setPackages(pkgs);
-        const monthly = pkgs.find(p => p.identifier === '$rc_three_month');
-        const defaultPkg = monthly || pkgs[0];
-        setSelected(defaultPkg.identifier);
-        // Scroll to selected plan after a short delay
-        const idx = pkgs.indexOf(defaultPkg);
-        setTimeout(() => {
-          flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.5 });
-        }, 300);
+        const threeMonth = pkgs.find(p => p.identifier === '$rc_three_month');
+        setSelected(threeMonth ? threeMonth.identifier : pkgs[0].identifier);
       }
     } catch (e) {
       Alert.alert('Error', 'Could not load plans. Please try again.');
@@ -97,40 +88,6 @@ export default function PaywallScreen({ navigation }) {
 
   const selectedPkg = packages.find(p => p.identifier === selected);
 
-  const renderPlanCard = ({ item: pkg }) => {
-    const meta = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, period: '' };
-    const isSelected = selected === pkg.identifier;
-    return (
-      <TouchableOpacity
-        style={[styles.planCard, isSelected && styles.planCardSelected]}
-        onPress={() => setSelected(pkg.identifier)}
-        activeOpacity={0.85}
-      >
-        {meta.popular && (
-          <LinearGradient
-            colors={['#e91e8c', '#ff6b35']}
-            style={styles.popularBadge}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          >
-            <Text style={styles.popularText}>BEST VALUE</Text>
-          </LinearGradient>
-        )}
-        <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
-          {meta.label}
-        </Text>
-        <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
-          {pkg.product.priceString}
-        </Text>
-        <Text style={styles.planPeriod}>{meta.period}</Text>
-        {isSelected && (
-          <View style={styles.planCheck}>
-            <Ionicons name="checkmark-circle" size={20} color="#e91e8c" />
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#0d0014', '#0a000f', '#080810']} style={StyleSheet.absoluteFill} />
@@ -168,19 +125,44 @@ export default function PaywallScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color="#e91e8c" size="large" style={{ marginVertical: 24 }} />
           ) : (
-            <FlatList
-              ref={flatListRef}
-              data={packages}
-              keyExtractor={pkg => pkg.identifier}
-              renderItem={renderPlanCard}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.plansList}
-              snapToAlignment="center"
-              decelerationRate="fast"
-              snapToInterval={W * 0.52}
-              onScrollToIndexFailed={() => {}}
-            />
+            <View style={styles.plansWrap}>
+              {packages.map((pkg) => {
+                const meta = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, period: '' };
+                const isSelected = selected === pkg.identifier;
+                return (
+                  <TouchableOpacity
+                    key={pkg.identifier}
+                    style={[styles.planCard, isSelected && styles.planCardSelected]}
+                    onPress={() => setSelected(pkg.identifier)}
+                    activeOpacity={0.85}
+                  >
+                    {meta.popular && (
+                      <LinearGradient
+                        colors={['#e91e8c', '#ff6b35']}
+                        style={styles.popularBadge}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.popularText}>BEST VALUE</Text>
+                      </LinearGradient>
+                    )}
+                    <View style={styles.planLeft}>
+                      <View style={[styles.radio, isSelected && styles.radioSelected]}>
+                        {isSelected && <View style={styles.radioDot} />}
+                      </View>
+                      <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
+                        {meta.label}
+                      </Text>
+                    </View>
+                    <View style={styles.planRight}>
+                      <Text style={[styles.planPrice, isSelected && styles.planPriceSelected]}>
+                        {pkg.product.priceString}
+                      </Text>
+                      <Text style={styles.planPeriod}>{meta.period}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           )}
 
           {/* Divider */}
@@ -257,17 +239,21 @@ const styles = StyleSheet.create({
   sectionLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 20, marginBottom: 14 },
 
   // Plans
-  plansList: { paddingHorizontal: 16, gap: 12, paddingBottom: 4 },
-  planCard: { width: W * 0.46, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', padding: 20, alignItems: 'center', gap: 6, position: 'relative', overflow: 'hidden' },
+  plansWrap: { paddingHorizontal: 16, gap: 10, marginBottom: 4 },
+  planCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, paddingHorizontal: 18, position: 'relative', overflow: 'hidden' },
   planCardSelected: { backgroundColor: 'rgba(233,30,140,0.1)', borderColor: '#e91e8c' },
-  popularBadge: { position: 'absolute', top: 0, left: 0, right: 0, paddingVertical: 5, alignItems: 'center' },
-  popularText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  planLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 15, fontWeight: '600', marginTop: 20 },
+  popularBadge: { position: 'absolute', top: 0, right: 0, paddingVertical: 4, paddingHorizontal: 10, borderBottomLeftRadius: 10 },
+  popularText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  planLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  planRight: { alignItems: 'flex-end' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  radioSelected: { borderColor: '#e91e8c' },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e91e8c' },
+  planLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 15, fontWeight: '600' },
   planLabelSelected: { color: '#fff' },
-  planPrice: { color: 'rgba(255,255,255,0.7)', fontSize: 26, fontWeight: '800' },
+  planPrice: { color: 'rgba(255,255,255,0.7)', fontSize: 18, fontWeight: '800' },
   planPriceSelected: { color: '#e91e8c' },
-  planPeriod: { color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' },
-  planCheck: { position: 'absolute', top: 10, right: 10 },
+  planPeriod: { color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'right' },
 
   // Divider
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 24, marginHorizontal: 20 },
