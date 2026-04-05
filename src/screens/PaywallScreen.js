@@ -1,20 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert, Dimensions, Image, Animated,
+  View, Text, StyleSheet, TouchableOpacity,
+  Alert, Dimensions, Image, Animated, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Purchases from 'react-native-purchases';
 import { colors, radius } from '../theme';
 
-const { width: W, height: H } = Dimensions.get('window');
-
-const PLANS = [
-  { id: 'weekly', label: 'Weekly', popular: false },
-  { id: '6month', label: '6 Months', popular: true },
-  { id: 'monthly', label: 'Monthly', popular: false },
-];
+const { width: W } = Dimensions.get('window');
 
 const FEATURES = [
   { icon: 'eye', label: 'See everyone who liked you' },
@@ -33,8 +28,18 @@ const BLURRED_COLORS = [
   ['#3e2a0a', '#1e0a3e'],
 ];
 
+const PACKAGE_META = {
+  '$rc_weekly':      { label: 'Weekly',   popular: false },
+  '$rc_monthly':     { label: 'Monthly',  popular: true  },
+  '$rc_two_month':   { label: '2 Months', popular: false },
+  '$rc_three_month': { label: '3 Months', popular: false },
+};
+
 export default function PaywallScreen({ navigation }) {
-  const [selected, setSelected] = useState('6month');
+  const [packages, setPackages] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -46,12 +51,60 @@ export default function PaywallScreen({ navigation }) {
     ).start();
   }, []);
 
-  const handleSubscribe = () => {
-    Alert.alert(
-      'Coming Soon',
-      'Dashni Gold is launching soon. You will be notified when subscriptions are available.',
-      [{ text: 'OK' }]
-    );
+  useEffect(() => {
+    loadOfferings();
+  }, []);
+
+  const loadOfferings = async () => {
+    try {
+      const offerings = await Purchases.getOfferings();
+      if (offerings.current && offerings.current.availablePackages.length > 0) {
+        const pkgs = offerings.current.availablePackages;
+        setPackages(pkgs);
+        const monthly = pkgs.find(p => p.identifier === '$rc_monthly');
+        setSelected(monthly ? monthly.identifier : pkgs[0].identifier);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not load subscription plans. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    const pkg = packages.find(p => p.identifier === selected);
+    if (!pkg) return;
+
+    setPurchasing(true);
+    try {
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      if (customerInfo.entitlements.active['premium']) {
+        Alert.alert('Welcome to Dashni Premium!', 'You now have full access.', [
+          { text: "Let's go!", onPress: () => navigation.goBack() },
+        ]);
+      }
+    } catch (e) {
+      if (!e.userCancelled) {
+        Alert.alert('Purchase failed', e.message);
+      }
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      const customerInfo = await Purchases.restorePurchases();
+      if (customerInfo.entitlements.active['premium']) {
+        Alert.alert('Restored!', 'Your premium access has been restored.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        Alert.alert('No purchases found', 'We could not find any previous purchases to restore.');
+      }
+    } catch (e) {
+      Alert.alert('Restore failed', e.message);
+    }
   };
 
   return (
@@ -65,7 +118,7 @@ export default function PaywallScreen({ navigation }) {
           </TouchableOpacity>
           <View style={styles.logoPill}>
             <Image source={require('../../assets/icon.png')} style={styles.logoImg} />
-            <Text style={styles.logoText}>Dashni Gold</Text>
+            <Text style={styles.logoText}>Dashni Premium</Text>
           </View>
           <View style={{ width: 36 }} />
         </View>
@@ -74,9 +127,7 @@ export default function PaywallScreen({ navigation }) {
       <Animated.ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-
       >
-        {/* Blurred photos strip */}
         <View style={styles.photosStrip}>
           {BLURRED_COLORS.map((cols, i) => (
             <View key={i} style={[styles.photoThumb, i === 2 && styles.photoThumbCenter]}>
@@ -89,13 +140,11 @@ export default function PaywallScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Hero text */}
         <View style={styles.heroSection}>
           <Text style={styles.heroTitle}>You have new likes!</Text>
           <Text style={styles.heroSub}>Upgrade to see exactly who liked you and match instantly</Text>
         </View>
 
-        {/* Features */}
         <View style={styles.featuresCard}>
           {FEATURES.map((f, i) => (
             <View key={i} style={[styles.featureRow, i < FEATURES.length - 1 && styles.featureRowBorder]}>
@@ -108,49 +157,63 @@ export default function PaywallScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Plans */}
-        <View style={styles.plansWrap}>
-          {PLANS.map((plan) => (
-            <TouchableOpacity
-              key={plan.id}
-              style={[styles.planCard, selected === plan.id && styles.planCardSelected]}
-              onPress={() => setSelected(plan.id)}
-              activeOpacity={0.85}
-            >
-              {plan.popular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularText}>Most popular</Text>
-                </View>
-              )}
-              <View style={styles.planLeft}>
-                <View style={[styles.radio, selected === plan.id && styles.radioActive]}>
-                  {selected === plan.id && <View style={styles.radioDot} />}
-                </View>
-                <View>
-                  <Text style={styles.planLabel}>{plan.label}</Text>
-                  <Text style={styles.planPerMonth}>{''}</Text>
-                </View>
-              </View>
-              <Text style={[styles.planPrice, selected === plan.id && { color: colors.accent }]}>{'Coming soon'}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {loading ? (
+          <ActivityIndicator color={colors.accent} size="large" style={{ marginVertical: 30 }} />
+        ) : (
+          <View style={styles.plansWrap}>
+            {packages.map((pkg) => {
+              const meta = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, popular: false };
+              const price = pkg.product.priceString;
+              const isSelected = selected === pkg.identifier;
+              return (
+                <TouchableOpacity
+                  key={pkg.identifier}
+                  style={[styles.planCard, isSelected && styles.planCardSelected]}
+                  onPress={() => setSelected(pkg.identifier)}
+                  activeOpacity={0.85}
+                >
+                  {meta.popular && (
+                    <View style={styles.popularBadge}>
+                      <Text style={styles.popularText}>Most popular</Text>
+                    </View>
+                  )}
+                  <View style={styles.planLeft}>
+                    <View style={[styles.radio, isSelected && styles.radioActive]}>
+                      {isSelected && <View style={styles.radioDot} />}
+                    </View>
+                    <Text style={styles.planLabel}>{meta.label}</Text>
+                  </View>
+                  <Text style={[styles.planPrice, isSelected && { color: colors.accent }]}>{price}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
-        {/* CTA */}
         <Animated.View style={[styles.ctaWrap, { transform: [{ scale: pulseAnim }] }]}>
-          <TouchableOpacity onPress={handleSubscribe} activeOpacity={0.9}>
+          <TouchableOpacity onPress={handleSubscribe} activeOpacity={0.9} disabled={purchasing || loading}>
             <LinearGradient
               colors={['#e91e8c', '#ff6b6b', '#ff9a3c']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={styles.ctaBtn}
             >
-              <Ionicons name="star" size={18} color="#fff" />
-              <Text style={styles.ctaBtnText}>Get Dashni Gold</Text>
+              {purchasing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="star" size={18} color="#fff" />
+                  <Text style={styles.ctaBtnText}>Get Dashni Premium</Text>
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
 
         <Text style={styles.terms}>Cancel anytime · No hidden fees · Auto-renews</Text>
+
+        <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
+          <Text style={styles.restoreText}>Restore purchases</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 50 }} />
       </Animated.ScrollView>
@@ -171,7 +234,6 @@ const styles = StyleSheet.create({
   photoThumbCenter: { width: 80, height: 100, borderRadius: 16, borderWidth: 2.5, borderColor: colors.accent },
   photoBlur: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,8,16,0.7)' },
   initCircle: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  photoLock: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   heroSection: { alignItems: 'center', paddingHorizontal: 24, marginBottom: 24, gap: 8 },
   heroTitle: { color: '#fff', fontSize: 26, fontWeight: '800', textAlign: 'center', letterSpacing: -0.5 },
   heroSub: { color: 'rgba(255,255,255,0.55)', fontSize: 15, textAlign: 'center', lineHeight: 22 },
@@ -190,10 +252,11 @@ const styles = StyleSheet.create({
   radioActive: { borderColor: colors.accent },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent },
   planLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  planPerMonth: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 },
   planPrice: { color: '#fff', fontSize: 18, fontWeight: '800' },
   ctaWrap: { marginHorizontal: 16, borderRadius: radius.full, overflow: 'hidden' },
   ctaBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 17, borderRadius: radius.full },
   ctaBtnText: { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.3 },
   terms: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', marginTop: 12 },
+  restoreBtn: { alignItems: 'center', marginTop: 12 },
+  restoreText: { color: 'rgba(255,255,255,0.35)', fontSize: 13, textDecorationLine: 'underline' },
 });

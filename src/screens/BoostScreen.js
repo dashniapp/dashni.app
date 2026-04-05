@@ -5,9 +5,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 
 export default function BoostScreen({ navigation }) {
+  const { hasAccess: isPremium } = usePremium();
   const [boosting, setBoosting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -38,6 +40,10 @@ export default function BoostScreen({ navigation }) {
   }, [boosting]);
 
   const startBoost = () => {
+    if (!isPremium) {
+      navigation.navigate('Paywall');
+      return;
+    }
     setBoosting(true);
     setTimeLeft(30 * 60);
   };
@@ -112,7 +118,7 @@ export default function BoostScreen({ navigation }) {
           <TouchableOpacity style={styles.boostBtn} onPress={startBoost} activeOpacity={0.85}>
             <LinearGradient colors={['#e91e8c', '#ff6b6b']} style={styles.boostBtnInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
               <Feather name="zap" size={18} color="#fff" />
-              <Text style={styles.boostBtnText}>Boost now — Free</Text>
+              <Text style={styles.boostBtnText}>{isPremium ? 'Boost now' : 'Upgrade to Boost'}</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}

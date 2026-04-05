@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 
 const { width: W } = Dimensions.get('window');
@@ -15,7 +16,7 @@ const CARD_W = (W - 14 * 2 - 10) / 2;
 export default function LikedYouScreen({ navigation }) {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isPremium] = useState(false); // set to true when RevenueCat added
+  const { hasAccess: isPremium } = usePremium();
 
   useEffect(() => { loadLikes(); }, []);
 
@@ -52,7 +53,7 @@ export default function LikedYouScreen({ navigation }) {
       const likeList = unique.map((l, i) => {
         const profile = profiles?.find(p => p.id === l.liker_id);
         const { data: photoData } = supabase.storage.from('avatars').getPublicUrl(`${l.liker_id}/avatar.jpg`);
-        const isBlurred = !isPremium && i > 1; // first 2 visible, rest blurred
+        const isBlurred = !isPremium;
         return {
           id: l.liker_id,
           name: isBlurred ? '???' : (profile?.name || 'User'),
@@ -117,10 +118,10 @@ export default function LikedYouScreen({ navigation }) {
         <View style={{ width: 30 }} />
       </View>
 
-      {!isPremium && likes.length > 2 && (
+      {!isPremium && likes.length > 0 && (
         <TouchableOpacity style={styles.unlockBanner} onPress={() => navigation.navigate('Paywall')}>
           <Ionicons name="heart" size={16} color={colors.accent} />
-          <Text style={styles.unlockText}>{likes.length - 2} people are hidden — unlock to see them</Text>
+          <Text style={styles.unlockText}>{likes.length} {likes.length === 1 ? 'person' : 'people'} liked you — unlock to see them</Text>
           <Text style={styles.unlockBtn}>Upgrade</Text>
         </TouchableOpacity>
       )}

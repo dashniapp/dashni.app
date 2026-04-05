@@ -14,6 +14,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../lib/supabase';
 import { getFilters } from './FiltersScreen';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -298,6 +299,9 @@ export default function DiscoverScreen({ navigation, route }) {
   const [matchData, setMatchData] = useState(null);
   const [myPhotoUrl, setMyPhotoUrl] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [swipesLeft, setSwipesLeft] = useState(10);
+  const [likesLeft, setLikesLeft] = useState(1);
+  const { hasAccess } = usePremium();
   const flatListRef = useRef(null);
   const profilesRef = useRef([]);
   const userIdRef = useRef(null);
@@ -363,6 +367,21 @@ export default function DiscoverScreen({ navigation, route }) {
 
       const adminUser = me?.is_admin === true || user.email === 'bjeshkes@gmail.com';
       setIsAdmin(adminUser);
+
+      const female = me?.gender === 'Woman' || me?.gender === 'Female';
+      if (!female && !adminUser) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: swipeData } = await supabase
+          .from('daily_swipes')
+          .select('swipe_count, like_count')
+          .eq('user_id', user.id)
+          .eq('swipe_date', today)
+          .single();
+        if (swipeData) {
+          setSwipesLeft(Math.max(0, 10 - swipeData.swipe_count));
+          setLikesLeft(Math.max(0, 1 - swipeData.like_count));
+        }
+      }
 
       const { data: blockData } = await supabase.from('blocks').select('blocked_id').eq('blocker_id', user.id);
       const blockedIds = (blockData || []).map(b => b.blocked_id);
@@ -451,6 +470,13 @@ export default function DiscoverScreen({ navigation, route }) {
   }, []);
 
   const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
+    if (!hasAccess && !isAdminRef.current) {
+      if (likesLeft <= 0 || swipesLeft <= 0) {
+        navigation.navigate('Paywall');
+        return;
+      }
+    }
+
     if (isAdminRef.current) {
       if (flatListRef.current && index < profilesRef.current.length - 1)
         flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
@@ -460,6 +486,28 @@ export default function DiscoverScreen({ navigation, route }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      if (!hasAccess && !isAdminRef.current) {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existing } = await supabase
+          .from('daily_swipes')
+          .select('id, swipe_count, like_count')
+          .eq('user_id', user.id)
+          .eq('swipe_date', today)
+          .single();
+        if (existing) {
+          const newSwipes = existing.swipe_count + 1;
+          const newLikes = existing.like_count + (isSuper ? 0 : 1);
+          await supabase.from('daily_swipes').update({ swipe_count: newSwipes, like_count: newLikes }).eq('id', existing.id);
+          setSwipesLeft(Math.max(0, 10 - newSwipes));
+          setLikesLeft(Math.max(0, 1 - newLikes));
+        } else {
+          await supabase.from('daily_swipes').insert({ user_id: user.id, swipe_date: today, swipe_count: 1, like_count: isSuper ? 0 : 1 });
+          setSwipesLeft(9);
+          setLikesLeft(isSuper ? 1 : 0);
+        }
+      }
+
       await supabase.from('likes').upsert({ liker_id: user.id, liked_id: likedProfile.id, is_super: isSuper });
       const { data: mutual } = await supabase.from('likes').select('id').eq('liker_id', likedProfile.id).eq('liked_id', user.id);
       if (mutual?.length) {
