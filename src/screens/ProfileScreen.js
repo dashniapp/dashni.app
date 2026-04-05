@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
+import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -64,6 +65,7 @@ export default function ProfileScreen({ navigation }) {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { hasAccess: isPremium } = usePremium();
 
   useEffect(() => {
     loadProfile();
@@ -282,10 +284,23 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.heroName}>{name}{age}</Text>
               {isVerified && <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />}
             </View>
-            <View style={styles.heroLocRow}>
-              <Feather name="map-pin" size={12} color="rgba(255,255,255,0.5)" />
-              <Text style={styles.heroLoc}>{location}</Text>
-            </View>
+            {isPremium ? (
+              <View style={styles.premiumBadge}>
+                <Ionicons name="star" size={12} color="#fff" />
+                <Text style={styles.premiumBadgeText}>Dashni Premium</Text>
+              </View>
+            ) : (
+              <View style={styles.heroLocRow}>
+                <Feather name="map-pin" size={12} color="rgba(255,255,255,0.5)" />
+                <Text style={styles.heroLoc}>{location}</Text>
+              </View>
+            )}
+            {isPremium && (
+              <View style={styles.heroLocRow}>
+                <Feather name="map-pin" size={12} color="rgba(255,255,255,0.5)" />
+                <Text style={styles.heroLoc}>{location}</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -479,12 +494,14 @@ export default function ProfileScreen({ navigation }) {
             </LinearGradient>
             <Text style={styles.quickActionLabel}>Photo</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('Paywall')}>
-            <LinearGradient colors={['#d97706', '#f59e0b']} style={styles.quickActionIcon}>
-              <Ionicons name="star" size={18} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.quickActionLabel}>Gold</Text>
-          </TouchableOpacity>
+          {!isPremium && (
+            <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('Paywall')}>
+              <LinearGradient colors={['#d97706', '#f59e0b']} style={styles.quickActionIcon}>
+                <Ionicons name="star" size={18} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.quickActionLabel}>Premium</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.quickAction} onPress={() => navigation.navigate('Verification')}>
             <LinearGradient colors={['#1d4ed8', '#3b82f6']} style={styles.quickActionIcon}>
               <Ionicons name="shield-checkmark" size={18} color="#fff" />
@@ -553,6 +570,8 @@ const styles = StyleSheet.create({
   heroName: { color: '#fff', fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   heroLocRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   heroLoc: { color: 'rgba(255,255,255,0.5)', fontSize: 13 },
+  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(233,30,140,0.2)', borderWidth: 1, borderColor: 'rgba(233,30,140,0.4)', borderRadius: radius.full, paddingVertical: 3, paddingHorizontal: 10, alignSelf: 'flex-start', marginTop: 2 },
+  premiumBadgeText: { color: '#e91e8c', fontSize: 12, fontWeight: '700' },
   photoBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 1, borderColor: 'rgba(255,152,0,0.3)', margin: 14, borderRadius: radius.md, padding: 12 },
   photoBannerText: { color: '#ff9800', fontSize: 13, flex: 1 },
   photoBannerBtn: { color: '#fff', fontSize: 12, fontWeight: '700', backgroundColor: '#ff9800', borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 10 },
