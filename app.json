@@ -13,11 +13,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourname.dashni",
+      "bundleIdentifier": "com.dashni",
       "infoPlist": {
-        "NSCameraUsageDescription": "Dashni uses your camera to record profile videos.",
-        "NSMicrophoneUsageDescription": "Dashni uses your microphone for video recording.",
-        "NSPhotoLibraryUsageDescription": "Dashni accesses your photos for your profile.",
+        "NSCameraUsageDescription": "Dashni uses your camera to take profile photos and record profile videos.",
+        "NSMicrophoneUsageDescription": "Dashni uses your microphone for profile video recording.",
+        "NSPhotoLibraryUsageDescription": "Dashni accesses your photo library so you can upload profile photos.",
+        "NSUserNotificationsUsageDescription": "Dashni sends notifications when you receive new matches and messages.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -26,7 +27,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#e91e8c"
       },
-      "package": "com.yourname.dashni",
+      "package": "com.dashni",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",

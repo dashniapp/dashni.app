@@ -115,6 +115,7 @@ export default function SignupScreen({ navigation }) {
   const [dayIdx,   setDayIdx]   = useState(0);
   const [monthIdx, setMonthIdx] = useState(0);
   const [yearIdx,  setYearIdx]  = useState(0);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   // Step 4 — gender
   const [gender, setGender] = useState('');
   // Step 5 — looking for
@@ -132,10 +133,10 @@ export default function SignupScreen({ navigation }) {
   const [videoUri, setVideoUri] = useState(null);
 
   const ALL_HOBBIES = [
-    'Muzikë 🎵', 'Udhëtime ✈️', 'Fitness 💪', 'Gatim 🍳', 'Art 🎨',
-    'Lexim 📚', 'Gaming 🎮', 'Fotografi 📸', 'Valle 💃', 'Natyrë 🏔️',
-    'Filma 🎬', 'Kafja ☕', 'Futboll ⚽', 'Plazh 🏖️', 'Familje 👨‍👩‍👧',
-    'Teknologji 💻', 'Muzikë Shqip 🎤', 'Kuzhina Shqipe 🥘', 'Historia 🏛️', 'Mode 👗',
+    'Music 🎵', 'Travel ✈️', 'Fitness 💪', 'Cooking 🍳', 'Art 🎨',
+    'Reading 📚', 'Gaming 🎮', 'Photography 📸', 'Dancing 💃', 'Nature 🏔️',
+    'Movies 🎬', 'Coffee ☕', 'Football ⚽', 'Beach 🏖️', 'Family 👨‍👩‍👧',
+    'Technology 💻', 'Albanian Music 🎤', 'Albanian Cuisine 🥘', 'History 🏛️', 'Fashion 👗',
   ];
 
   const progress = step / (TOTAL_STEPS - 1);
@@ -164,6 +165,7 @@ export default function SignupScreen({ navigation }) {
       case 3: {
         const age = CUR_YEAR - YEARS[yearIdx];
         if (age < 18) { Alert.alert('Must be 18+', 'You must be at least 18 to use Dashni.'); return false; }
+        if (!ageConfirmed) { Alert.alert('Confirm your age', 'Please confirm you are 18 or older to continue.'); return false; }
         break;
       }
       case 4:
@@ -414,6 +416,16 @@ export default function SignupScreen({ navigation }) {
                   {age >= 18 ? `You're ${age} years old` : `Must be 18+ · Currently ${age}`}
                 </Text>
               </View>
+              <TouchableOpacity
+                style={s.ageConfirmRow}
+                onPress={() => setAgeConfirmed(v => !v)}
+                activeOpacity={0.7}
+              >
+                <View style={[s.checkbox, ageConfirmed && s.checkboxOn]}>
+                  {ageConfirmed && <Ionicons name="checkmark" size={14} color="#fff" />}
+                </View>
+                <Text style={s.ageConfirmText}>I confirm I am 18 years of age or older</Text>
+              </TouchableOpacity>
             </StepShell>
           )}
 
@@ -685,6 +697,10 @@ const s = StyleSheet.create({
   wheelLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   agePill:  { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', backgroundColor: colors.bgCard, borderRadius: radius.full, paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: colors.border },
   agePillText: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  ageConfirmRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4, marginTop: 8 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  ageConfirmText: { flex: 1, color: colors.textSecondary, fontSize: 13, lineHeight: 18 },
 
   // Big tappable cards (gender / who to meet)
   bigCards: { gap: 12 },

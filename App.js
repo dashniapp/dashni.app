@@ -8,9 +8,14 @@ import { StyleSheet } from 'react-native';
 import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 import RootNavigator from './src/navigation/RootNavigator';
 
-// TODO: Replace with your RevenueCat PRODUCTION iOS key before App Store submission
-// Get it from: RevenueCat Dashboard → Apps → iOS → Public SDK key
+// ⚠️ BEFORE APP STORE SUBMISSION:
+// Replace this with your RevenueCat PRODUCTION iOS key.
+// RevenueCat Dashboard → Apps → (your iOS app) → Public SDK key
+// The production key starts with "appl_" not "test_"
 const RC_IOS_KEY = 'test_gvBANbXzwsXkroytTyvktAJQFqg';
+if (!__DEV__ && RC_IOS_KEY.startsWith('test_')) {
+  throw new Error('SUBMISSION BLOCKED: Replace RC_IOS_KEY with your production RevenueCat key before submitting to the App Store.');
+}
 
 export default function App() {
   useEffect(() => {

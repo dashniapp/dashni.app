@@ -11,7 +11,7 @@ import { colors, radius } from '../theme';
 
 const STEPS = [
   { icon: 'camera', title: 'Take a selfie', sub: 'Hold your phone at eye level in good lighting' },
-  { icon: 'check-circle', title: 'Under review', sub: 'Our team will verify your photo within 24 hours' },
+  { icon: 'check-circle', title: 'Under review', sub: 'Our team will review your selfie. You will be notified by email.' },
   { icon: 'award', title: 'Verified!', sub: 'Your profile now shows a verified badge' },
 ];
 
@@ -144,7 +144,7 @@ export default function VerificationScreen({ navigation }) {
               <Feather name="clock" size={36} color="#ff9800" />
             </View>
             <Text style={styles.pendingTitle}>Under review</Text>
-            <Text style={styles.pendingSub}>We're reviewing your selfie. This usually takes less than 24 hours. We'll notify you when it's done!</Text>
+            <Text style={styles.pendingSub}>We're reviewing your selfie. We'll send you an email once it's done.</Text>
             <View style={styles.pendingCard}>
               <View style={styles.benefit}><Feather name="mail" size={15} color={colors.accent} /><Text style={styles.benefitText}>You'll get an email when verified</Text></View>
               <View style={styles.benefit}><Feather name="bell" size={15} color={colors.accent} /><Text style={styles.benefitText}>And a notification in the app</Text></View>

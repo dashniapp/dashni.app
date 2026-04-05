@@ -71,7 +71,7 @@ export default function BlockReportScreen({ navigation, route }) {
         reported_id: userId,
         reason: selectedReason,
       });
-      Alert.alert('Report submitted', 'Thank you for keeping Dashni safe. Our team will review this report within 24 hours.');
+      Alert.alert('Report submitted', 'Thank you for keeping Dashni safe. Our team will review this report. For urgent safety concerns email support@dashni.app');
       navigation.goBack();
     } catch (e) {
       setSubmitted(false);

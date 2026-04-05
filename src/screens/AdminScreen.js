@@ -17,8 +17,19 @@ export default function AdminScreen({ navigation }) {
   const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
-    loadUsers();
+    checkAdminAndLoad();
   }, []);
+
+  const checkAdminAndLoad = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigation.goBack(); return; }
+      const { data: profile } = await supabase
+        .from('profiles').select('is_admin').eq('id', user.id).single();
+      if (!profile?.is_admin) { navigation.goBack(); return; }
+      loadUsers();
+    } catch (e) { navigation.goBack(); }
+  };
 
   useEffect(() => {
     const q = search.trim().toLowerCase();
