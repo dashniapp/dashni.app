@@ -80,16 +80,14 @@ export default function MatchesScreen({ navigation }) {
     const list = unique.map(m => {
       const otherId = m.user_1 === user.id ? m.user_2 : m.user_1;
       const profile = profiles?.find(p => p.id === otherId);
-      const isBlurred = !hasAccess;
       const { data: photoData } = supabase.storage.from('avatars').getPublicUrl(`${otherId}/avatar.jpg`);
       return {
         id: m.id,
         userId: otherId,
-        name: isBlurred ? '???' : (profile?.name || 'User'),
-        age: isBlurred ? '' : (profile?.age || ''),
+        name: profile?.name || 'User',
+        age: profile?.age || '',
         initials: profile?.name ? profile.name[0].toUpperCase() : '?',
         photoUrl: photoData?.publicUrl ? photoData.publicUrl + '?t=1' : null,
-        isBlurred,
       };
     });
     setMatches(list.filter(m => !blockedIds.has(m.userId)));
@@ -114,75 +112,76 @@ export default function MatchesScreen({ navigation }) {
     const likerIds = unique.map(l => l.liker_id);
     const { data: profiles } = await supabase.from('profiles').select('id,name,age').in('id', likerIds);
 
-    const list = unique.map((l, i) => {
+    const list = unique.map((l) => {
       const profile = profiles?.find(p => p.id === l.liker_id);
-      const isBlurred = !hasAccess; // fully locked for free users
       const { data: photoData } = supabase.storage.from('avatars').getPublicUrl(`${l.liker_id}/avatar.jpg`);
       return {
         id: l.liker_id,
         userId: l.liker_id,
-        name: isBlurred ? '???' : (profile?.name || 'User'),
-        age: isBlurred ? '' : (profile?.age || ''),
+        name: profile?.name || 'User',
+        age: profile?.age || '',
         initials: profile?.name ? profile.name[0].toUpperCase() : '?',
         photoUrl: photoData?.publicUrl ? photoData.publicUrl + '?t=1' : null,
-        isBlurred,
         isSuper: l.is_super,
       };
     });
     setLikes(list.filter(l => !blockedIds.has(l.userId)));
   };
 
-  const renderCard = ({ item, isLike }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.85}
-      onPress={() => {
-        if (item.isBlurred) {
-          navigation.navigate('Paywall');
-          return;
-        }
-        navigation.navigate('Chat', {
-          name: item.name,
-          initials: item.initials,
-          bgColor: '#14102a',
-          accentColor: '#ff6b6b',
-          userId: item.userId,
-          photoUrl: item.photoUrl,
-        });
-      }}
-    >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#14102a', alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{ color: colors.accent, fontSize: 32, fontWeight: '800' }}>{item.initials}</Text>
-      </View>
-      {item.photoUrl && !item.isBlurred && (
-        <Image source={{ uri: item.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-      )}
-      {item.photoUrl && item.isBlurred && (
-        <Image source={{ uri: item.photoUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.05 }]} resizeMode="cover" />
-      )}
-      {item.isBlurred && (
-        <View style={styles.blurOverlay}>
-          <View style={styles.lockCircle}>
-            <Feather name="lock" size={20} color="#fff" />
-          </View>
-          <Text style={styles.lockText}>Unlock with Premium</Text>
+  const renderCard = ({ item, isLike }) => {
+    const isBlurred = !hasAccess;
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.85}
+        onPress={() => {
+          if (isBlurred) {
+            navigation.navigate('Paywall');
+            return;
+          }
+          navigation.navigate('Chat', {
+            name: item.name,
+            initials: item.initials,
+            bgColor: '#14102a',
+            accentColor: '#ff6b6b',
+            userId: item.userId,
+            photoUrl: item.photoUrl,
+          });
+        }}
+      >
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#14102a', alignItems: 'center', justifyContent: 'center' }]}>
+          <Text style={{ color: colors.accent, fontSize: 32, fontWeight: '800' }}>{item.initials}</Text>
         </View>
-      )}
-      {item.isSuper && !item.isBlurred && (
-        <View style={styles.superBadge}>
-          <Text style={styles.superText}>⭐ Super</Text>
-        </View>
-      )}
-      <LinearGradient colors={['transparent', 'rgba(8,8,16,0.92)']} style={styles.cardGradient}>
-        <Text style={styles.cardName}>
-          {item.name}{item.age ? `, ${item.age}` : ''}
-        </Text>
-        {!item.isBlurred && (
-          <Text style={styles.cardSub}>Tap to message</Text>
+        {item.photoUrl && !isBlurred && (
+          <Image source={{ uri: item.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         )}
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+        {item.photoUrl && isBlurred && (
+          <Image source={{ uri: item.photoUrl }} style={[StyleSheet.absoluteFill, { opacity: 0.05 }]} resizeMode="cover" />
+        )}
+        {isBlurred && (
+          <View style={styles.blurOverlay}>
+            <View style={styles.lockCircle}>
+              <Feather name="lock" size={20} color="#fff" />
+            </View>
+            <Text style={styles.lockText}>Unlock with Premium</Text>
+          </View>
+        )}
+        {item.isSuper && !isBlurred && (
+          <View style={styles.superBadge}>
+            <Text style={styles.superText}>⭐ Super</Text>
+          </View>
+        )}
+        <LinearGradient colors={['transparent', 'rgba(8,8,16,0.92)']} style={styles.cardGradient}>
+          <Text style={styles.cardName}>
+            {isBlurred ? '???' : item.name}{!isBlurred && item.age ? `, ${item.age}` : ''}
+          </Text>
+          {!isBlurred && (
+            <Text style={styles.cardSub}>Tap to message</Text>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   const currentData = tab === 'matches' ? matches : likes;
 
