@@ -402,14 +402,16 @@ export default function DiscoverScreen({ navigation, route }) {
       const genderFilter = me?.looking_for_gender;
       const myGender = me?.gender;
 
-      if (genderFilter === 'Men' || genderFilter === 'Man') {
-        q = q.eq('gender', 'Man');
-      } else if (genderFilter === 'Women' || genderFilter === 'Woman') {
-        q = q.eq('gender', 'Woman');
+      if (genderFilter === 'Men' || genderFilter === 'Man' || genderFilter === 'Male') {
+        q = q.in('gender', ['Man', 'Male']);
+      } else if (genderFilter === 'Women' || genderFilter === 'Woman' || genderFilter === 'Female') {
+        q = q.in('gender', ['Woman', 'Female']);
       } else {
         // Default: show opposite gender based on user's own gender
-        if (myGender === 'Man') q = q.eq('gender', 'Woman');
-        else if (myGender === 'Woman') q = q.eq('gender', 'Man');
+        const isMan = myGender === 'Man' || myGender === 'Male';
+        const isWoman = myGender === 'Woman' || myGender === 'Female';
+        if (isMan) q = q.in('gender', ['Woman', 'Female']);
+        else if (isWoman) q = q.in('gender', ['Man', 'Male']);
       }
       if (filters.ageMin > 18) q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99) q = q.lte('age', filters.ageMax);
