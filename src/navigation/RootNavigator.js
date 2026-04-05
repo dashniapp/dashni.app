@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
-  Image,
+  Image, ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -324,7 +324,11 @@ export default function RootNavigator() {
   onProfileCompleteRef.current  = () => setProfileComplete(true);
   setSignupInProgressRef.current = setSignupInProgress;
 
-  if (loading || profileChecking) return null;
+  if (loading || profileChecking) return (
+    <View style={{ flex: 1, backgroundColor: '#080810', alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color="#e91e8c" size="large" />
+    </View>
+  );
 
   // During signup or no session: always stay on AuthStack so SignupScreen
   // keeps running its uploads without navigator switching underneath it
