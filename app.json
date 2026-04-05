@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Dashni uses your camera to record profile videos.",
         "NSMicrophoneUsageDescription": "Dashni uses your microphone for video recording.",
-        "NSPhotoLibraryUsageDescription": "Dashni accesses your photos for your profile."
+        "NSPhotoLibraryUsageDescription": "Dashni accesses your photos for your profile.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -27,13 +28,20 @@
       },
       "package": "com.yourname.dashni",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
       "expo-image-picker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6f2c4b8c-4069-49bf-aa23-f6603cf1e4ea"
+      }
+    },
+    "owner": "bjeshkan1"
   }
 }
