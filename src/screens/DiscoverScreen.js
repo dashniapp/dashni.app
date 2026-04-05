@@ -310,6 +310,9 @@ export default function DiscoverScreen({ navigation, route }) {
   const currentIndexRef = useRef(0);
   const isAdminRef = useRef(false);
   const suppressScroll = useRef(false);
+  const hasAccessRef = useRef(hasAccess);
+  const swipesLeftRef = useRef(10);
+  const likesLeftRef = useRef(1);
 
   useEffect(() => {
     loadProfiles();
@@ -331,6 +334,9 @@ export default function DiscoverScreen({ navigation, route }) {
 
   useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
   useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
+  useEffect(() => { hasAccessRef.current = hasAccess; }, [hasAccess]);
+  useEffect(() => { swipesLeftRef.current = swipesLeft; }, [swipesLeft]);
+  useEffect(() => { likesLeftRef.current = likesLeft; }, [likesLeft]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -378,8 +384,10 @@ export default function DiscoverScreen({ navigation, route }) {
           .eq('swipe_date', today)
           .single();
         if (swipeData) {
-          setSwipesLeft(Math.max(0, 10 - swipeData.swipe_count));
-          setLikesLeft(Math.max(0, 1 - swipeData.like_count));
+          const s = Math.max(0, 10 - swipeData.swipe_count);
+          const l = Math.max(0, 1 - swipeData.like_count);
+          setSwipesLeft(s); swipesLeftRef.current = s;
+          setLikesLeft(l); likesLeftRef.current = l;
         }
       }
 
@@ -402,16 +410,19 @@ export default function DiscoverScreen({ navigation, route }) {
       const genderFilter = me?.looking_for_gender;
       const myGender = me?.gender;
 
+      const isMan = myGender === 'Man' || myGender === 'Male';
+      const isWoman = myGender === 'Woman' || myGender === 'Female';
       if (genderFilter === 'Men' || genderFilter === 'Man' || genderFilter === 'Male') {
         q = q.in('gender', ['Man', 'Male']);
       } else if (genderFilter === 'Women' || genderFilter === 'Woman' || genderFilter === 'Female') {
         q = q.in('gender', ['Woman', 'Female']);
+      } else if (isMan) {
+        q = q.in('gender', ['Woman', 'Female']);
+      } else if (isWoman) {
+        q = q.in('gender', ['Man', 'Male']);
       } else {
-        // Default: show opposite gender based on user's own gender
-        const isMan = myGender === 'Man' || myGender === 'Male';
-        const isWoman = myGender === 'Woman' || myGender === 'Female';
-        if (isMan) q = q.in('gender', ['Woman', 'Female']);
-        else if (isWoman) q = q.in('gender', ['Man', 'Male']);
+        // gender unknown — safe fallback: show women
+        q = q.in('gender', ['Woman', 'Female']);
       }
       if (filters.ageMin > 18) q = q.gte('age', filters.ageMin);
       if (filters.ageMax < 99) q = q.lte('age', filters.ageMax);
@@ -481,8 +492,8 @@ export default function DiscoverScreen({ navigation, route }) {
   }, []);
 
   const handleLike = useCallback(async (likedProfile, index, isSuper = false) => {
-    if (!hasAccess && !isAdminRef.current) {
-      if (likesLeft <= 0 || swipesLeft <= 0) {
+    if (!hasAccessRef.current && !isAdminRef.current) {
+      if (likesLeftRef.current <= 0 || swipesLeftRef.current <= 0) {
         navigation.navigate('Paywall');
         return;
       }
@@ -498,7 +509,7 @@ export default function DiscoverScreen({ navigation, route }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (!hasAccess && !isAdminRef.current) {
+      if (!hasAccessRef.current && !isAdminRef.current) {
         const today = new Date().toISOString().split('T')[0];
         const { data: existing } = await supabase
           .from('daily_swipes')
@@ -510,12 +521,15 @@ export default function DiscoverScreen({ navigation, route }) {
           const newSwipes = existing.swipe_count + 1;
           const newLikes = existing.like_count + (isSuper ? 0 : 1);
           await supabase.from('daily_swipes').update({ swipe_count: newSwipes, like_count: newLikes }).eq('id', existing.id);
-          setSwipesLeft(Math.max(0, 10 - newSwipes));
-          setLikesLeft(Math.max(0, 1 - newLikes));
+          const s = Math.max(0, 10 - newSwipes);
+          const l = Math.max(0, 1 - newLikes);
+          setSwipesLeft(s); swipesLeftRef.current = s;
+          setLikesLeft(l); likesLeftRef.current = l;
         } else {
           await supabase.from('daily_swipes').insert({ user_id: user.id, swipe_date: today, swipe_count: 1, like_count: isSuper ? 0 : 1 });
-          setSwipesLeft(9);
-          setLikesLeft(isSuper ? 1 : 0);
+          const s = 9; const l = isSuper ? 1 : 0;
+          setSwipesLeft(s); swipesLeftRef.current = s;
+          setLikesLeft(l); likesLeftRef.current = l;
         }
       }
 
@@ -529,6 +543,40 @@ export default function DiscoverScreen({ navigation, route }) {
         setMatchData({ profile: likedProfile });
       }
     } catch (e) {}
+  }, [advanceNonAdmin]);
+
+  const handlePass = useCallback(async (index) => {
+    if (!hasAccessRef.current && !isAdminRef.current) {
+      if (swipesLeftRef.current <= 0) {
+        navigation.navigate('Paywall');
+        return;
+      }
+    }
+    if (isAdminRef.current) {
+      if (flatListRef.current && index < profilesRef.current.length - 1)
+        flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
+    } else {
+      advanceNonAdmin();
+    }
+    if (!hasAccessRef.current && !isAdminRef.current) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existing } = await supabase
+          .from('daily_swipes').select('id, swipe_count, like_count')
+          .eq('user_id', user.id).eq('swipe_date', today).single();
+        if (existing) {
+          const newSwipes = existing.swipe_count + 1;
+          await supabase.from('daily_swipes').update({ swipe_count: newSwipes }).eq('id', existing.id);
+          const s = Math.max(0, 10 - newSwipes);
+          setSwipesLeft(s); swipesLeftRef.current = s;
+        } else {
+          await supabase.from('daily_swipes').insert({ user_id: user.id, swipe_date: today, swipe_count: 1, like_count: 0 });
+          setSwipesLeft(9); swipesLeftRef.current = 9;
+        }
+      } catch (e) {}
+    }
   }, [advanceNonAdmin]);
 
   const deleteCurrentProfile = useCallback(() => {
@@ -633,14 +681,7 @@ export default function DiscoverScreen({ navigation, route }) {
         dotsTop={insets.top + 44}
         onInfo={() => navigation.navigate('ViewProfile', { profile: item })}
         onLike={() => handleLike(item, index, false)}
-        onPass={() => {
-          if (isAdmin) {
-            if (flatListRef.current && index < profilesRef.current.length - 1)
-              flatListRef.current.scrollToIndex({ index: index + 1, animated: true });
-          } else {
-            advanceNonAdmin();
-          }
-        }}
+        onPass={() => handlePass(index)}
         onMessage={() => navigation.navigate('Chat', {
           name: item.name, initials: item.initials,
           bgColor: '#14102a', accentColor: '#ff6b6b',
@@ -649,7 +690,7 @@ export default function DiscoverScreen({ navigation, route }) {
         onReport={() => navigation.navigate('BlockReport', { profile: item })}
       />
     );
-  }, [currentIndex, navigation, profiles.length, handleLike, isScreenFocused, isAdmin, advanceNonAdmin]);
+  }, [currentIndex, navigation, profiles.length, handleLike, handlePass, isScreenFocused, isAdmin]);
 
   if (loading) {
     return (
