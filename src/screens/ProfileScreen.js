@@ -284,22 +284,22 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.heroName}>{name}{age}</Text>
               {isVerified && <Ionicons name="checkmark-circle" size={20} color="#3b82f6" />}
             </View>
+            <View style={styles.heroLocRow}>
+              <Feather name="map-pin" size={12} color="rgba(255,255,255,0.5)" />
+              <Text style={styles.heroLoc}>{location}</Text>
+            </View>
             {isPremium ? (
               <View style={styles.premiumBadge}>
                 <Ionicons name="star" size={12} color="#fff" />
                 <Text style={styles.premiumBadgeText}>Dashni Premium</Text>
               </View>
             ) : (
-              <View style={styles.heroLocRow}>
-                <Feather name="map-pin" size={12} color="rgba(255,255,255,0.5)" />
-                <Text style={styles.heroLoc}>{location}</Text>
-              </View>
-            )}
-            {isPremium && (
-              <View style={styles.heroLocRow}>
-                <Feather name="map-pin" size={12} color="rgba(255,255,255,0.5)" />
-                <Text style={styles.heroLoc}>{location}</Text>
-              </View>
+              <TouchableOpacity style={styles.upgradeHeroBtn} onPress={() => navigation.navigate('Paywall')} activeOpacity={0.85}>
+                <LinearGradient colors={['#e91e8c', '#ff6b35']} style={styles.upgradeHeroBtnInner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Ionicons name="star" size={13} color="#fff" />
+                  <Text style={styles.upgradeHeroBtnText}>Get Premium</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             )}
           </View>
         </TouchableOpacity>
@@ -594,8 +594,11 @@ const styles = StyleSheet.create({
   heroName: { color: '#fff', fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   heroLocRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   heroLoc: { color: 'rgba(255,255,255,0.5)', fontSize: 13 },
-  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(233,30,140,0.2)', borderWidth: 1, borderColor: 'rgba(233,30,140,0.4)', borderRadius: radius.full, paddingVertical: 3, paddingHorizontal: 10, alignSelf: 'flex-start', marginTop: 2 },
+  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(233,30,140,0.2)', borderWidth: 1, borderColor: 'rgba(233,30,140,0.4)', borderRadius: radius.full, paddingVertical: 3, paddingHorizontal: 10, alignSelf: 'flex-start', marginTop: 4 },
   premiumBadgeText: { color: '#e91e8c', fontSize: 12, fontWeight: '700' },
+  upgradeHeroBtn: { alignSelf: 'flex-start', marginTop: 6, borderRadius: radius.full, overflow: 'hidden' },
+  upgradeHeroBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 5, paddingHorizontal: 12 },
+  upgradeHeroBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   photoBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 1, borderColor: 'rgba(255,152,0,0.3)', margin: 14, borderRadius: radius.md, padding: 12 },
   photoBannerText: { color: '#ff9800', fontSize: 13, flex: 1 },
   photoBannerBtn: { color: '#fff', fontSize: 12, fontWeight: '700', backgroundColor: '#ff9800', borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 10 },
