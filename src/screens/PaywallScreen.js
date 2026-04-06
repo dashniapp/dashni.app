@@ -21,7 +21,6 @@ const FEATURES = [
 const PACKAGE_META = {
   '$rc_weekly':      { label: 'Weekly',   period: 'per week'  },
   '$rc_monthly':     { label: 'Monthly',  period: 'per month' },
-  '$rc_two_month':   { label: '2 Months', period: 'every 2 months' },
   '$rc_three_month': { label: '3 Months', period: 'every 3 months', popular: true },
 };
 
@@ -44,7 +43,9 @@ export default function PaywallScreen({ navigation }) {
     try {
       const offerings = await Purchases.getOfferings();
       if (offerings.current?.availablePackages?.length > 0) {
-        const pkgs = offerings.current.availablePackages;
+        const pkgs = offerings.current.availablePackages.filter(
+          p => p.identifier !== '$rc_two_month'
+        );
         setPackages(pkgs);
         const threeMonth = pkgs.find(p => p.identifier === '$rc_three_month');
         setSelected(threeMonth ? threeMonth.identifier : pkgs[0].identifier);
@@ -52,7 +53,6 @@ export default function PaywallScreen({ navigation }) {
         setLoadError('No plans found. Configure offerings in RevenueCat dashboard and make sure products are approved in App Store Connect.');
       }
     } catch (e) {
-      // Temporarily showing full error for debugging
       setLoadError(`RC Error: ${e.message || JSON.stringify(e)}`);
     } finally {
       setLoading(false);
@@ -107,7 +107,6 @@ export default function PaywallScreen({ navigation }) {
 
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
 
-        {/* Scrollable top content */}
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
@@ -179,7 +178,6 @@ export default function PaywallScreen({ navigation }) {
             </View>
           )}
 
-          {/* Divider */}
           <View style={styles.divider} />
 
           {/* Features */}
@@ -250,22 +248,18 @@ const styles = StyleSheet.create({
   closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingTop: 80 },
 
-  // Hero
   hero: { alignItems: 'center', paddingVertical: 24, gap: 10, paddingHorizontal: 20 },
   crownWrap: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: '#e91e8c', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
   heroTitle: { color: '#fff', fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
   heroSub: { color: 'rgba(255,255,255,0.45)', fontSize: 15, textAlign: 'center' },
 
-  // Section label
   sectionLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 20, marginBottom: 14 },
 
-  // Error state
   errorWrap: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20, gap: 12 },
   errorText: { color: 'rgba(255,255,255,0.45)', fontSize: 13, textAlign: 'center', lineHeight: 19 },
   retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   retryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
-  // Plans
   plansWrap: { paddingHorizontal: 16, gap: 10, marginBottom: 4 },
   planCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, paddingHorizontal: 18, position: 'relative', overflow: 'hidden' },
   planCardSelected: { backgroundColor: 'rgba(233,30,140,0.1)', borderColor: '#e91e8c' },
@@ -282,10 +276,8 @@ const styles = StyleSheet.create({
   planPriceSelected: { color: '#e91e8c' },
   planPeriod: { color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'right' },
 
-  // Divider
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 24, marginHorizontal: 20 },
 
-  // Features
   featuresWrap: { gap: 2, marginBottom: 16, paddingHorizontal: 20 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 11 },
   featureIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
@@ -293,12 +285,10 @@ const styles = StyleSheet.create({
   featureLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
   featureSub: { color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 1 },
 
-  // Restore
   restoreBtn: { alignItems: 'center', paddingVertical: 12 },
   restoreText: { color: 'rgba(255,255,255,0.25)', fontSize: 13, textDecorationLine: 'underline' },
   genderNote: { color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', paddingHorizontal: 24 },
 
-  // Fixed bottom CTA
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingTop: 12, backgroundColor: 'rgba(8,8,16,0.95)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
   ctaWrap: { borderRadius: 16, overflow: 'hidden', shadowColor: '#e91e8c', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 10 },
   ctaBtn: { paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
