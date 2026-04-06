@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dashni – Encryption Self-Classification Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 720px;
+      margin: 60px auto;
+      padding: 40px;
+      line-height: 1.7;
+      color: #111;
+    }
+    h1 {
+      font-size: 20px;
+      border-bottom: 2px solid #111;
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    h2 {
+      font-size: 14px;
+      margin-top: 28px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #444;
+    }
+    p, li {
+      font-size: 14px;
+      margin: 4px 0;
+    }
+    ul {
+      margin: 6px 0 6px 20px;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    td {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      vertical-align: top;
+    }
+    td:first-child {
+      font-weight: bold;
+      width: 200px;
+      background: #f7f7f7;
+    }
+    .footer {
+      margin-top: 60px;
+      font-size: 13px;
+      color: #555;
+      border-top: 1px solid #ccc;
+      padding-top: 16px;
+    }
+    @media print {
+      body { margin: 0; padding: 30px; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Encryption Self-Classification Report</h1>
+
+  <h2>App Information</h2>
+  <table>
+    <tr><td>App Name</td><td>Dashni</td></tr>
+    <tr><td>Platform</td><td>iOS</td></tr>
+    <tr><td>Date</td><td>April 6, 2026</td></tr>
+    <tr><td>Contact</td><td>privacy@dashni.app</td></tr>
+  </table>
+
+  <h2>Encryption Used</h2>
+  <p>
+    Dashni uses standard HTTPS (TLS 1.2 and TLS 1.3) exclusively through Apple's
+    built-in networking APIs — specifically <strong>URLSession / NSURLSession</strong> —
+    to communicate with backend services (Supabase). No proprietary, custom, or
+    non-standard encryption algorithms are implemented within the application.
+  </p>
+
+  <h2>Exemption Basis</h2>
+  <p>
+    This application qualifies for exemption under U.S. Export Administration
+    Regulations (EAR) <strong>Section 740.17(b)(1)</strong> — encryption incorporated
+    into a product that uses only publicly available encryption and relies entirely
+    on the encryption provided by the underlying operating system (Apple iOS).
+  </p>
+
+  <h2>Encryption Is NOT Used For</h2>
+  <ul>
+    <li>Custom or proprietary authentication beyond standard HTTPS</li>
+    <li>Local on-device data storage encryption</li>
+    <li>Custom end-to-end message encryption</li>
+    <li>Any algorithm not accepted as standard by IEEE, IETF, or ITU</li>
+  </ul>
+
+  <h2>Conclusion</h2>
+  <p>
+    Dashni does not implement non-exempt encryption. All network communication is
+    secured exclusively via Apple's OS-level TLS implementation. The app is eligible
+    for the standard encryption exemption and does not require an Export Compliance
+    Registration Number (ERN).
+  </p>
+
+  <div class="footer">
+    <p>Dashni &nbsp;|&nbsp; privacy@dashni.app &nbsp;|&nbsp; https://dashni.app/privacy</p>
+  </div>
+
+</body>
+</html>
