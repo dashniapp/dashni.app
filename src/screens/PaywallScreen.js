@@ -29,6 +29,7 @@ export default function PaywallScreen({ navigation }) {
   const [packages, setPackages] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [purchasing, setPurchasing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -38,16 +39,24 @@ export default function PaywallScreen({ navigation }) {
   }, []);
 
   const loadOfferings = async () => {
+    setLoadError(null);
+    setLoading(true);
     try {
       const offerings = await Purchases.getOfferings();
-      if (offerings.current?.availablePackages.length > 0) {
+      if (offerings.current?.availablePackages?.length > 0) {
         const pkgs = offerings.current.availablePackages;
         setPackages(pkgs);
         const threeMonth = pkgs.find(p => p.identifier === '$rc_three_month');
         setSelected(threeMonth ? threeMonth.identifier : pkgs[0].identifier);
+      } else {
+        // Offerings fetched but no packages — misconfiguration in RevenueCat dashboard
+        const msg = 'No plans found. Make sure your RevenueCat offering is configured and products are approved in App Store Connect.';
+        console.warn('[Paywall]', msg, offerings);
+        setLoadError(msg);
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not load plans. Please try again.');
+      console.error('[Paywall] getOfferings error:', e);
+      setLoadError(__DEV__ ? `RevenueCat error: ${e.message}` : 'Could not load plans. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -120,10 +129,18 @@ export default function PaywallScreen({ navigation }) {
             <Text style={styles.heroSub}>Unlock everything. Match faster.</Text>
           </View>
 
-          {/* Plans - horizontal swipeable */}
+          {/* Plans */}
           <Text style={styles.sectionLabel}>Choose your plan</Text>
           {loading ? (
             <ActivityIndicator color="#e91e8c" size="large" style={{ marginVertical: 24 }} />
+          ) : loadError ? (
+            <View style={styles.errorWrap}>
+              <Ionicons name="alert-circle-outline" size={36} color="rgba(255,255,255,0.3)" />
+              <Text style={styles.errorText}>{loadError}</Text>
+              <TouchableOpacity onPress={loadOfferings} style={styles.retryBtn}>
+                <Text style={styles.retryText}>Try again</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.plansWrap}>
               {packages.map((pkg) => {
@@ -200,10 +217,10 @@ export default function PaywallScreen({ navigation }) {
             style={styles.ctaWrap}
             onPress={handleSubscribe}
             activeOpacity={0.9}
-            disabled={purchasing || loading}
+            disabled={purchasing || loading || !!loadError}
           >
             <LinearGradient
-              colors={['#e91e8c', '#ff5f40', '#ff9a3c']}
+              colors={loadError ? ['#444', '#444'] : ['#e91e8c', '#ff5f40', '#ff9a3c']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={styles.ctaBtn}
             >
@@ -244,6 +261,12 @@ const styles = StyleSheet.create({
 
   // Section label
   sectionLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 20, marginBottom: 14 },
+
+  // Error state
+  errorWrap: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20, gap: 12 },
+  errorText: { color: 'rgba(255,255,255,0.45)', fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  retryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
   // Plans
   plansWrap: { paddingHorizontal: 16, gap: 10, marginBottom: 4 },
