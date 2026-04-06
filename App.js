@@ -25,7 +25,7 @@ export default function App() {
         Purchases.configure({ apiKey: RC_IOS_KEY });
       }
     } catch (e) {
-      console.warn('RevenueCat init failed:', e.message);
+      if (__DEV__) console.warn('RevenueCat init failed:', e.message);
     }
   }, []);
 

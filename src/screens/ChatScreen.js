@@ -100,10 +100,7 @@ export default function ChatScreen({ route, navigation }) {
   const sendMessage = async (content, type = 'text', mediaUrl = null) => {
     if (!myId) { Alert.alert('Error', 'Not logged in'); return; }
     const isDemo = !userId || userId === 'null' || userId === null;
-    if (isDemo) {
-      Alert.alert('Demo profile', 'This is a demo profile. You can only message real users!');
-      return;
-    }
+    if (isDemo) return;
     const otherId = userId;
     const tempId = 'temp-' + Date.now();
     const msgData = {
