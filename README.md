@@ -6,7 +6,7 @@
 Dashni
 
 ### Subtitle
-See Their Vibe. Make It Real.
+Shiko Energjinë. Bëje Reale.
 
 ---
 
