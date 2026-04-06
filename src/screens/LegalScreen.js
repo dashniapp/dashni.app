@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { colors, radius } from '../theme';
 
 const PRIVACY_POLICY = `Last updated: March 2026
-Full policy available at: https://dashni.app/privacy
+Full policy available at: https://inquisitive-caraway-a17.notion.site/Dashni-Privacy-Policy-33a44cea30eb804ea4eee0a137447932
 
 1. INFORMATION WE COLLECT
 We collect information you provide when creating an account including your name, email address, age, gender, location, profile photos and videos.
@@ -32,7 +32,7 @@ We use industry-standard encryption to protect your data. However no method of t
 For privacy concerns contact: privacy@dashni.app`;
 
 const TERMS = `Last updated: March 2026
-Full policy available at: https://dashni.app/terms
+Full policy available at: https://inquisitive-caraway-a17.notion.site/Dashni-Terms-of-Service-33a44cea30eb80feb560fcd2d1009ee3
 
 1. ACCEPTANCE OF TERMS
 By creating a Dashni account you agree to these Terms of Service. If you do not agree, do not use the app.
