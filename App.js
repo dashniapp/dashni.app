@@ -12,7 +12,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 // Replace this with your RevenueCat PRODUCTION iOS key.
 // RevenueCat Dashboard → Apps → (your iOS app) → Public SDK key
 // The production key starts with "appl_" not "test_"
-const RC_IOS_KEY = 'test_gvBANbXzwsXkroytTyvktAJQFqg';
+const RC_IOS_KEY = 'appl_mrlcuHBIFeclGrBqSifQyHQFNMp';
 if (!__DEV__ && RC_IOS_KEY.startsWith('test_')) {
   throw new Error('SUBMISSION BLOCKED: Replace RC_IOS_KEY with your production RevenueCat key before submitting to the App Store.');
 }
