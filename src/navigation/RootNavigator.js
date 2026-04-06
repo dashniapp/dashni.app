@@ -8,6 +8,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import Purchases from 'react-native-purchases';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 import {
@@ -303,18 +304,30 @@ export default function RootNavigator() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) checkProfile(session.user.id).then(() => setLoading(false));
-      else setLoading(false);
+      if (session?.user) {
+        // Tie RevenueCat to this specific user account
+        Purchases.logIn(session.user.id).catch(() => {});
+        checkProfile(session.user.id).then(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session); // always update session so "Start swiping" can fire
-      if (ignoreAuthChangeRef.current) return; // skip profile check during signup uploads
+      setSession(session);
+      if (session?.user) {
+        // Tie RevenueCat to this specific user account
+        Purchases.logIn(session.user.id).catch(() => {});
+      } else {
+        // User signed out — reset RevenueCat to anonymous
+        Purchases.logOut().catch(() => {});
+        setProfileComplete(false);
+        setProfileChecking(false);
+      }
+      if (ignoreAuthChangeRef.current) return;
       if (session?.user) {
         setProfileChecking(true);
         checkProfile(session.user.id);
-      } else {
-        setProfileComplete(false);
-        setProfileChecking(false);
       }
     });
     return () => subscription.unsubscribe();
