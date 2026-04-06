@@ -6,56 +6,60 @@
 Dashni
 
 ### Subtitle
-Match. Chat. Connect for Real.
+See Their Vibe. Make It Real.
 
 ---
 
 ### Promotional Text *(170 chars — updateable without resubmission)*
-> See real people, not just photos. Dashni brings video profiles to dating so you know exactly who you're meeting before you match.
+> Photos lie. Videos don't. Dashni is the first dating app where you see someone move, speak, and laugh — before you ever say hello.
 
 ---
 
 ### Description
 
-Dashni is where genuine connections happen — powered by video, driven by compatibility, and built with your privacy in mind.
+You already know what a good photo looks like. Dashni shows you something better: the real person behind it.
 
-Forget static photos and hollow bios. On Dashni, you see real people in motion. Video profiles let you experience someone's personality, energy, and vibe before you ever send a message. When you match on Dashni, you already know there's something real there.
+Dating apps have been built on pictures for too long. A photo can tell you what someone looks like. It can't tell you how they carry themselves, how they light up talking about something they love, or whether their energy matches yours. That's what video is for — and that's what Dashni is built around.
 
----
+Record a short video for your profile. Watch theirs. When you feel it, match. Then talk.
 
-**VIDEO PROFILES**
-Go beyond the photo. Record and share short videos that show the real you — your laugh, your energy, your story. Because attraction isn't just visual, it's felt.
+It sounds simple because it is. The hard part — finding someone you genuinely click with — just got a whole lot easier.
 
-**SMART MATCHING**
-Our matching engine pairs you with compatible people nearby based on who you are and what you're looking for. Less swiping. More connecting.
 
-**INSTANT MATCH NOTIFICATIONS**
-The moment someone connects with you, you'll know. Never miss a match that matters.
+VIDEO PROFILES
+The centerpiece of every Dashni profile. Record a short clip that captures your personality, your humor, your energy. No script needed. Just you, being you. First impressions that actually mean something.
 
-**PRIVATE MESSAGING**
-Every conversation stays between you and your match. Clean, fast, and completely private in-app messaging — no phone number required.
+VIDEO IN MESSAGES
+Keep the momentum going. Send video messages to your matches and let the conversation breathe beyond text. See their reaction. Hear their voice. Feel the connection before you ever meet in person.
 
-**RICH PROFILES**
-Photos, videos, and the details that actually matter. Build a profile that represents who you truly are.
+SMART MATCHING
+Dashni learns what draws you in and surfaces the people most likely to matter. Location-aware, preference-driven, and constantly improving the more you use it. Less noise. More signal.
 
-**VERIFIED COMMUNITY**
-Dashni is strictly 18+. Every account is held to our community standards, so you can focus on finding your person — not filtering out bad actors.
+INSTANT MATCH ALERTS
+The moment someone matches with you, you'll feel it. Real-time notifications so you never lose a connection in the scroll.
 
----
+PRIVATE, SECURE MESSAGING
+Every conversation is between you and your match — no phone number, no exposure. Clean, fast, and completely private.
 
-**YOUR PRIVACY IS NON-NEGOTIABLE**
-We do not sell, trade, or share your personal data with third parties. Your profile is visible only to other verified Dashni users. You can delete your account at any time from Settings — all of your data is permanently and irreversibly removed within 30 days.
+PHOTOS TOO
+Of course you can add photos. But on Dashni, they're a supporting act. Video is the headline.
 
-Read our full Privacy Policy: https://dashni.app/privacy
+VERIFIED 18+ COMMUNITY
+Dashni is strictly for adults. Every account is held to our community standards. Accounts belonging to minors are immediately and permanently terminated. A safer space, full stop.
 
-**NEED HELP?**
-Our support team is here for you.
-Visit: https://dashni.app
-Email: privacy@dashni.app
 
----
+YOUR DATA STAYS YOURS
+We do not sell, rent, or share your personal information with third parties. Your profile is visible only to other Dashni users. Delete your account anytime from Settings — every piece of your data is permanently removed within 30 days. No exceptions.
 
-*Dashni requires users to be 18 years of age or older. Accounts belonging to minors are immediately and permanently terminated upon detection.*
+Privacy Policy: https://dashni.app/privacy
+
+SUPPORT
+Questions, feedback, or need help with your account?
+https://dashni.app
+privacy@dashni.app
+
+—
+Dashni is intended for users 18 years of age and older. Accounts found to belong to minors are terminated immediately upon detection.
 
 ---
 
