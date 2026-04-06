@@ -49,14 +49,11 @@ export default function PaywallScreen({ navigation }) {
         const threeMonth = pkgs.find(p => p.identifier === '$rc_three_month');
         setSelected(threeMonth ? threeMonth.identifier : pkgs[0].identifier);
       } else {
-        // Offerings fetched but no packages — misconfiguration in RevenueCat dashboard
-        const msg = 'No plans found. Make sure your RevenueCat offering is configured and products are approved in App Store Connect.';
-        console.warn('[Paywall]', msg, offerings);
-        setLoadError(msg);
+        setLoadError('No plans found. Configure offerings in RevenueCat dashboard and make sure products are approved in App Store Connect.');
       }
     } catch (e) {
-      console.error('[Paywall] getOfferings error:', e);
-      setLoadError(__DEV__ ? `RevenueCat error: ${e.message}` : 'Could not load plans. Check your connection and try again.');
+      // Temporarily showing full error for debugging
+      setLoadError(`RC Error: ${e.message || JSON.stringify(e)}`);
     } finally {
       setLoading(false);
     }
