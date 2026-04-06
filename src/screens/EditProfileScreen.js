@@ -11,7 +11,11 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
 
-const ALL_TAGS = ['Hiking', 'Coffee', 'Photography', 'Live Music', 'Travel', 'Cooking', 'Reading', 'Fitness', 'Art', 'Gaming', 'Movies', 'Dogs', 'Yoga', 'Dancing', 'Muzikë', 'Udhëtime', 'Gatim', 'Natyrë'];
+const ALL_TAGS = [
+  'Hiking', 'Coffee', 'Photography', 'Live Music', 'Travel', 'Cooking',
+  'Reading', 'Fitness', 'Art', 'Gaming', 'Movies', 'Dogs',
+  'Yoga', 'Dancing', 'Music', 'Nature', 'Football', 'Fashion',
+];
 
 export default function EditProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
@@ -95,7 +99,7 @@ export default function EditProfileScreen({ navigation }) {
       setHasVideo(true);
       setVideoUri(null);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('✅ Video updated!', 'Your new video profile is live.');
+      Alert.alert('\u2705 Video updated!', 'Your new video profile is live.');
     } catch (e) {
       Alert.alert('Upload failed', e.message);
     }
