@@ -32,7 +32,7 @@ We use industry-standard encryption to protect your data. However no method of t
 For privacy concerns contact: privacy@dashni.app`;
 
 const TERMS = `Last updated: March 2026
-Full policy available at: https://dashni.app/privacy
+Full policy available at: https://dashni.app/terms
 
 1. ACCEPTANCE OF TERMS
 By creating a Dashni account you agree to these Terms of Service. If you do not agree, do not use the app.

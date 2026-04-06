@@ -42,19 +42,10 @@ export default function ChatScreen({ route, navigation }) {
       if (!user) return;
       setMyId(user.id);
 
-      // Demo profile - no real userId
+      // No userId — nothing to load
       const isDemo = !userId || userId === 'null' || userId === null;
       if (isDemo) {
-        setMessages([{
-          id: 'demo-1',
-          sender_id: 'demo',
-          receiver_id: user.id,
-          content: 'This is a demo profile. Real messages will appear here when real users sign up!',
-          type: 'text',
-          created_at: new Date().toISOString(),
-          seen: true,
-          reactions: {},
-        }]);
+        setMessages([]);
         return;
       }
 
@@ -355,18 +346,6 @@ export default function ChatScreen({ route, navigation }) {
               ? <ActivityIndicator size="small" color={colors.accent} />
               : <Feather name="image" size={20} color={colors.textSecondary} />
             }
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.attachBtn}
-            onPress={() => {
-              Alert.alert(
-                'Voice Message',
-                'Voice recording coming in the next update. For now you can send photos!',
-                [{ text: 'OK' }]
-              );
-            }}
-          >
-            <Feather name="mic" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
           <TextInput
             style={styles.input}

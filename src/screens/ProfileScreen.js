@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL } from '../lib/supabase';
 import { usePremium } from '../hooks/usePremium';
 import { colors, radius } from '../theme';
 
@@ -136,7 +136,7 @@ export default function ProfileScreen({ navigation }) {
       const { data: { session } } = await supabase.auth.getSession();
       const formData = new FormData();
       formData.append('file', { uri: result.assets[0].uri, name: 'avatar.jpg', type: 'image/jpeg' });
-      const uploadUrl = `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/avatars/${user.id}/avatar.jpg`;
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/avatars/${user.id}/avatar.jpg`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}`, 'x-upsert': 'true' },
@@ -171,7 +171,7 @@ export default function ProfileScreen({ navigation }) {
       const formData = new FormData();
       formData.append('file', { uri: result.assets[0].uri, name: 'profile.mp4', type: 'video/mp4' });
       const res = await fetch(
-        `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/videos/${user.id}/profile.mp4`,
+        `${SUPABASE_URL}/storage/v1/object/videos/${user.id}/profile.mp4`,
         { method: 'POST', headers: { 'Authorization': `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: formData }
       );
       if (!res.ok) throw new Error(await res.text());
@@ -199,7 +199,7 @@ export default function ProfileScreen({ navigation }) {
       const formData = new FormData();
       formData.append('file', { uri: result.assets[0].uri, name: `photo_${slot + 1}.jpg`, type: 'image/jpeg' });
       const res = await fetch(
-        `https://cpthnynbdrkesxfdlmdv.supabase.co/storage/v1/object/avatars/${user.id}/photo_${slot + 1}.jpg`,
+        `${SUPABASE_URL}/storage/v1/object/avatars/${user.id}/photo_${slot + 1}.jpg`,
         { method: 'POST', headers: { 'Authorization': `Bearer ${session.access_token}`, 'x-upsert': 'true' }, body: formData }
       );
       if (!res.ok) throw new Error(await res.text());
