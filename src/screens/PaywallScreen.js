@@ -15,7 +15,7 @@ const FEATURES = [
   { icon: 'infinite',  label: 'Unlimited swipes',      sub: 'Never run out of likes again' },
   { icon: 'star',      label: 'Profile boost',         sub: 'Get 10x more views today' },
   { icon: 'flash',     label: 'Priority discovery',    sub: 'Be seen before everyone else' },
-  { icon: 'refresh',   label: 'Rewind last swipe',     sub: 'Changed your mind? Go back' },
+  { icon: 'chatbubble', label: 'Text anyone unlimited', sub: 'Message anyone without matching first' },
 ];
 
 const PACKAGE_META = {
