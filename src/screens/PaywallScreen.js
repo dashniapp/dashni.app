@@ -47,7 +47,6 @@ export default function PaywallScreen({ navigation }) {
   useEffect(() => {
     loadOfferings();
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    // Subtle CTA pulse to draw attention
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.03, duration: 900, useNativeDriver: true }),
@@ -67,7 +66,6 @@ export default function PaywallScreen({ navigation }) {
         );
         setPackages(pkgs);
 
-        // Compute per-day rate and savings vs weekly
         const weeklyPkg   = pkgs.find(p => p.identifier === '$rc_weekly');
         const weeklyDaily = weeklyPkg ? weeklyPkg.product.price / 7 : null;
 
@@ -136,7 +134,6 @@ export default function PaywallScreen({ navigation }) {
     <View style={styles.container}>
       <LinearGradient colors={['#0d0014', '#0a000f', '#080810']} style={StyleSheet.absoluteFill} />
 
-      {/* Close */}
       <SafeAreaView edges={['top']} style={styles.closeWrap}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
           <Feather name="x" size={18} color="rgba(255,255,255,0.4)" />
@@ -276,11 +273,11 @@ export default function PaywallScreen({ navigation }) {
               <Text style={styles.legalLink}>Restore Purchases</Text>
             </TouchableOpacity>
             <Text style={styles.legalSep}>·</Text>
-            <TouchableOpacity onPress={() => Linking.openURL('https://dashni.app/privacy')}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://dashniapp.github.io/dashni.app/privacy.html')}>
               <Text style={styles.legalLink}>Privacy Policy</Text>
             </TouchableOpacity>
             <Text style={styles.legalSep}>·</Text>
-            <TouchableOpacity onPress={() => Linking.openURL('https://dashni.app/terms')}>
+            <TouchableOpacity onPress={() => Linking.openURL('https://dashniapp.github.io/dashni.app/terms.html')}>
               <Text style={styles.legalLink}>Terms of Service</Text>
             </TouchableOpacity>
           </View>
