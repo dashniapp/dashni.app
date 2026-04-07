@@ -11,12 +11,13 @@ import Purchases from 'react-native-purchases';
 import { colors, radius } from '../theme';
 
 // Outcome-driven feature copy — sells the result, not the feature
+// Rewind Last Swipe removed. Chat Anyone added.
 const FEATURES = [
-  { icon: 'heart',      label: 'Match instantly',          sub: 'See everyone who already likes you and match in one tap' },
-  { icon: 'infinite',   label: 'Like without limits',       sub: 'Swipe as many people as you want, every single day' },
-  { icon: 'star',       label: 'Get seen by 10x more people', sub: 'Boost your profile to the top of discovery' },
-  { icon: 'flash',      label: 'Show up first',             sub: 'Appear before everyone else in search results' },
-  { icon: 'chatbubble', label: 'Message anyone, anytime',   sub: 'Start a conversation without waiting for a match' },
+  { icon: 'heart',               label: 'Match instantly',              sub: 'See everyone who already likes you and match in one tap' },
+  { icon: 'infinite',            label: 'Like without limits',           sub: 'Swipe as many people as you want, every single day' },
+  { icon: 'star',                label: 'Get seen by 10x more people',   sub: 'Boost your profile to the top of discovery' },
+  { icon: 'flash',               label: 'Show up first',                 sub: 'Appear before everyone else in the discover feed' },
+  { icon: 'chatbubble-ellipses', label: 'Chat anyone — no match needed', sub: 'Message any profile directly and skip the waiting game' },
 ];
 
 const DURATIONS_DAYS = {
@@ -26,19 +27,19 @@ const DURATIONS_DAYS = {
 };
 
 const PACKAGE_META = {
-  '$rc_weekly':      { label: 'Weekly',   period: 'per week' },
-  '$rc_monthly':     { label: 'Monthly',  period: 'per month' },
-  '$rc_three_month': { label: '3 Months', period: 'every 3 months', popular: true },
+  '$rc_weekly':      { label: 'Weekly',     period: 'per week' },
+  '$rc_monthly':     { label: 'Monthly',    period: 'per month' },
+  '$rc_three_month': { label: 'Best Value', period: 'every 3 months', popular: true },
 };
 
 export default function PaywallScreen({ navigation }) {
-  const [packages, setPackages]       = useState([]);
-  const [selected, setSelected]       = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [loadError, setLoadError]     = useState(null);
-  const [purchasing, setPurchasing]   = useState(false);
-  const [perDay, setPerDay]           = useState({});
-  const [savings, setSavings]         = useState({});
+  const [packages, setPackages]     = useState([]);
+  const [selected, setSelected]     = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState(null);
+  const [purchasing, setPurchasing] = useState(false);
+  const [perDay, setPerDay]         = useState({});
+  const [savings, setSavings]       = useState({});
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -67,19 +68,15 @@ export default function PaywallScreen({ navigation }) {
         setPackages(pkgs);
 
         // Compute per-day rate and savings vs weekly
-        const weeklyPkg = pkgs.find(p => p.identifier === '$rc_weekly');
-        const weeklyDaily = weeklyPkg
-          ? weeklyPkg.product.price / 7
-          : null;
+        const weeklyPkg   = pkgs.find(p => p.identifier === '$rc_weekly');
+        const weeklyDaily = weeklyPkg ? weeklyPkg.product.price / 7 : null;
 
-        const dayMap = {};
+        const dayMap  = {};
         const saveMap = {};
         pkgs.forEach(pkg => {
-          const days = DURATIONS_DAYS[pkg.identifier] || 30;
+          const days  = DURATIONS_DAYS[pkg.identifier] || 30;
           const daily = pkg.product.price / days;
-          dayMap[pkg.identifier] = daily < 1
-            ? `$${daily.toFixed(2)}/day`
-            : null;
+          dayMap[pkg.identifier] = daily < 1 ? `$${daily.toFixed(2)}/day` : null;
           if (weeklyDaily && pkg.identifier !== '$rc_weekly') {
             const pct = Math.round((1 - daily / weeklyDaily) * 100);
             if (pct > 0) saveMap[pkg.identifier] = `Save ${pct}%`;
@@ -161,10 +158,11 @@ export default function PaywallScreen({ navigation }) {
             >
               <Ionicons name="star" size={32} color="#fff" />
             </LinearGradient>
-            {/* Benefit-driven headline — tells users what they GET */}
+            {/* Benefit-driven headline */}
             <Text style={styles.heroTitle}>Get More Matches Today</Text>
+            {/* FOMO subtitle — people who like you are already waiting */}
             <Text style={styles.heroSub}>
-              Thousands of Albanians are already connecting.{`\n`}Don't miss out.
+              People who already like you are waiting right now.{`\n`}Don't let them slip away.
             </Text>
           </View>
 
@@ -183,9 +181,9 @@ export default function PaywallScreen({ navigation }) {
           ) : (
             <View style={styles.plansWrap}>
               {packages.map((pkg) => {
-                const meta      = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, period: '' };
+                const meta       = PACKAGE_META[pkg.identifier] || { label: pkg.identifier, period: '' };
                 const isSelected = selected === pkg.identifier;
-                const isWeak    = pkg.identifier === '$rc_weekly'; // visually de-emphasise weekly
+                const isWeak     = pkg.identifier === '$rc_weekly'; // visually de-emphasise weekly
                 return (
                   <TouchableOpacity
                     key={pkg.identifier}
@@ -197,14 +195,14 @@ export default function PaywallScreen({ navigation }) {
                     onPress={() => setSelected(pkg.identifier)}
                     activeOpacity={0.85}
                   >
-                    {/* Popular badge */}
+                    {/* Best Value badge on the 3-month plan */}
                     {meta.popular && (
                       <LinearGradient
                         colors={['#e91e8c', '#ff6b35']}
                         style={styles.popularBadge}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                       >
-                        <Text style={styles.popularText}>MOST POPULAR</Text>
+                        <Text style={styles.popularText}>BEST VALUE</Text>
                       </LinearGradient>
                     )}
 
@@ -216,7 +214,7 @@ export default function PaywallScreen({ navigation }) {
                         <Text style={[styles.planLabel, isSelected && styles.planLabelSelected]}>
                           {meta.label}
                         </Text>
-                        {/* Per-day price — makes it feel cheap */}
+                        {/* Per-day price — makes cost feel small */}
                         {perDay[pkg.identifier] ? (
                           <Text style={styles.perDay}>{perDay[pkg.identifier]}</Text>
                         ) : null}
@@ -279,18 +277,18 @@ export default function PaywallScreen({ navigation }) {
           {/* Women note */}
           <Text style={styles.genderNote}>Women enjoy free access to all Dashni Premium features.</Text>
 
-          {/* Restore + legal links */}
+          {/* Restore + legal links — required by App Store guidelines */}
           <View style={styles.legalRow}>
             <TouchableOpacity onPress={handleRestore}>
-              <Text style={styles.legalLink}>Restore purchases</Text>
+              <Text style={styles.legalLink}>Restore Purchases</Text>
             </TouchableOpacity>
             <Text style={styles.legalSep}>·</Text>
             <TouchableOpacity onPress={() => Linking.openURL('https://dashni.app/privacy')}>
-              <Text style={styles.legalLink}>Privacy</Text>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
             </TouchableOpacity>
             <Text style={styles.legalSep}>·</Text>
             <TouchableOpacity onPress={() => Linking.openURL('https://dashni.app/terms')}>
-              <Text style={styles.legalLink}>Terms</Text>
+              <Text style={styles.legalLink}>Terms of Service</Text>
             </TouchableOpacity>
           </View>
 
@@ -317,7 +315,6 @@ export default function PaywallScreen({ navigation }) {
                 {purchasing ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  // Outcome-driven CTA text
                   <Text style={styles.ctaText}>
                     {selectedPkg
                       ? `Start Getting Matches — ${selectedPkg.product.priceString}`
@@ -362,35 +359,35 @@ const styles = StyleSheet.create({
   retryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
   // Plans
-  plansWrap:       { paddingHorizontal: 16, gap: 10, marginBottom: 4 },
-  planCard:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, paddingHorizontal: 18, position: 'relative', overflow: 'hidden' },
-  planCardSelected:{ backgroundColor: 'rgba(233,30,140,0.12)', borderColor: '#e91e8c' },
-  planCardWeak:    { opacity: 0.6 }, // de-emphasise weekly when not selected
-  popularBadge:    { position: 'absolute', top: 0, right: 0, paddingVertical: 4, paddingHorizontal: 10, borderBottomLeftRadius: 10 },
-  popularText:     { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  planLeft:        { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  planRight:       { alignItems: 'flex-end', gap: 3 },
-  radio:           { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
-  radioSelected:   { borderColor: '#e91e8c' },
-  radioDot:        { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e91e8c' },
-  planLabel:       { color: 'rgba(255,255,255,0.6)', fontSize: 15, fontWeight: '600' },
+  plansWrap:        { paddingHorizontal: 16, gap: 10, marginBottom: 4 },
+  planCard:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)', paddingVertical: 14, paddingHorizontal: 18, position: 'relative', overflow: 'hidden' },
+  planCardSelected: { backgroundColor: 'rgba(233,30,140,0.12)', borderColor: '#e91e8c' },
+  planCardWeak:     { opacity: 0.6 },
+  popularBadge:     { position: 'absolute', top: 0, right: 0, paddingVertical: 4, paddingHorizontal: 10, borderBottomLeftRadius: 10 },
+  popularText:      { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  planLeft:         { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  planRight:        { alignItems: 'flex-end', gap: 3 },
+  radio:            { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+  radioSelected:    { borderColor: '#e91e8c' },
+  radioDot:         { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e91e8c' },
+  planLabel:        { color: 'rgba(255,255,255,0.6)', fontSize: 15, fontWeight: '600' },
   planLabelSelected:{ color: '#fff' },
-  perDay:          { color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 },
-  savingsBadge:    { backgroundColor: '#22c55e22', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  savingsText:     { color: '#22c55e', fontSize: 11, fontWeight: '700' },
-  planPrice:       { color: 'rgba(255,255,255,0.7)', fontSize: 18, fontWeight: '800' },
+  perDay:           { color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 },
+  savingsBadge:     { backgroundColor: '#22c55e22', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  savingsText:      { color: '#22c55e', fontSize: 11, fontWeight: '700' },
+  planPrice:        { color: 'rgba(255,255,255,0.7)', fontSize: 18, fontWeight: '800' },
   planPriceSelected:{ color: '#e91e8c' },
-  planPeriod:      { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
+  planPeriod:       { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
 
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 24, marginHorizontal: 20 },
 
   // Features
-  featuresWrap:   { gap: 2, marginBottom: 20, paddingHorizontal: 20 },
-  featureRow:     { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 11 },
-  featureIconWrap:{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  featureText:    { flex: 1 },
-  featureLabel:   { color: '#fff', fontSize: 15, fontWeight: '600' },
-  featureSub:     { color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2, lineHeight: 17 },
+  featuresWrap:    { gap: 2, marginBottom: 20, paddingHorizontal: 20 },
+  featureRow:      { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 11 },
+  featureIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  featureText:     { flex: 1 },
+  featureLabel:    { color: '#fff', fontSize: 15, fontWeight: '600' },
+  featureSub:      { color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 2, lineHeight: 17 },
 
   // Trust row
   trustRow:  { flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 16, paddingHorizontal: 20 },
