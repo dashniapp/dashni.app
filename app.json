@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Dashni",
+    "slug": "dashni",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "dashni",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.dashni"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f0f0f"
+      },
+      "package": "app.dashni"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0f0f0f",
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
