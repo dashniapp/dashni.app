@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import Purchases from 'react-native-purchases';
 import { supabase } from '../lib/supabase';
 import { colors, radius } from '../theme';
@@ -20,7 +20,9 @@ import {
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import DiscoverScreen from '../screens/DiscoverScreen';
+import FeedScreen from '../screens/FeedScreen';
+import CreatePostScreen from '../screens/CreatePostScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ChatScreen from '../screens/ChatScreen';
@@ -44,7 +46,7 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const TABS = [
-  { name: 'Discover', icon: 'play-circle', lib: 'feather' },
+  { name: 'Feed', iconActive: 'home', iconInactive: 'home-outline', lib: 'ionicons' },
   { name: 'Matches', icon: 'heart', lib: 'feather' },
   { name: 'Messages', icon: 'message-circle', lib: 'feather' },
   { name: 'Profile', icon: 'user', lib: 'feather' },
@@ -170,11 +172,19 @@ function DynamicIslandTabBar({ state, descriptors, navigation }) {
               activeOpacity={0.7}
             >
               <View style={{ position: 'relative' }}>
-                <Feather
-                  name={tab.icon}
-                  size={22}
-                  color={isActive ? colors.accent : 'rgba(255,255,255,0.45)'}
-                />
+                {tab.lib === 'ionicons' ? (
+                  <Ionicons
+                    name={isActive ? tab.iconActive : tab.iconInactive}
+                    size={22}
+                    color={isActive ? colors.accent : 'rgba(255,255,255,0.45)'}
+                  />
+                ) : (
+                  <Feather
+                    name={tab.icon}
+                    size={22}
+                    color={isActive ? colors.accent : 'rgba(255,255,255,0.45)'}
+                  />
+                )}
                 {showBadge && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
@@ -216,7 +226,7 @@ function AppTabs() {
       >
         {TABS.map(tab => {
           const Screen = {
-            Discover: DiscoverScreen,
+            Feed: FeedScreen,
             Matches: MatchesScreen,
             Messages: MessagesScreen,
             Profile: ProfileScreen,
@@ -258,6 +268,18 @@ function AppStack() {
       <Stack.Screen name="Paywall" component={PaywallScreen} />
       <Stack.Screen name="Legal" component={LegalScreen} />
       <Stack.Screen name="Admin" component={AdminScreen} />
+      <Stack.Screen
+        name="CreatePost"
+        component={CreatePostScreen}
+        options={{
+          headerShown: true,
+          title: 'New Post',
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { fontWeight: '600' },
+        }}
+      />
+      <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
