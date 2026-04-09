@@ -15,6 +15,7 @@ import {
   onProfileCompleteRef, ignoreAuthChangeRef, setSignupInProgressRef,
   clearLikesBadgeRef, clearMessagesBadgeRef,
 } from './refs';
+import { ProfileProvider } from '../context/ProfileContext';
 
 // Screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -368,7 +369,11 @@ export default function RootNavigator() {
   // keeps running its uploads without navigator switching underneath it
   if (signupInProgress || !session) return <AuthStack />;
   if (!profileComplete) return <CompleteProfileGate />;
-  return <AppStack />;
+  return (
+    <ProfileProvider>
+      <AppStack />
+    </ProfileProvider>
+  );
 }
 
 const styles = StyleSheet.create({
