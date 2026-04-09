@@ -526,7 +526,7 @@ export default function ProfileScreen({ navigation }) {
                 <Ionicons name="star" size={22} color="#fff" />
                 <View>
                   <Text style={styles.upgradeBannerTitle}>Get Dashni Premium</Text>
-                  <Text style={styles.upgradeBannerSub}>See likes · Unlimited swipes · Boost</Text>
+                  <Text style={styles.upgradeBannerSub}>See likes · Unlimited likes · Boost</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />

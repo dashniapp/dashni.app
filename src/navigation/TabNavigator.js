@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, StyleSheet } from 'react-native';
 import { Feather, AntDesign, Ionicons } from '@expo/vector-icons';
-import DiscoverScreen from '../screens/DiscoverScreen';
+import FeedScreen from '../screens/FeedScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -29,11 +29,12 @@ export default function TabNavigator() {
       }}
     >
       <Tab.Screen
-        name="Discover"
-        component={DiscoverScreen}
+        name="Feed"
+        component={FeedScreen}
         options={{
+          tabBarLabel: 'Feed',
           tabBarIcon: ({ focused }) => (
-            <TabIcon name="grid" library="feather" focused={focused} />
+            <TabIcon name={focused ? 'home' : 'home-outline'} library="ion" focused={focused} />
           ),
         }}
       />

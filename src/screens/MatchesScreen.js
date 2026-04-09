@@ -219,10 +219,10 @@ export default function MatchesScreen({ navigation }) {
             {tab === 'matches' ? 'No matches yet' : 'No likes yet'}
           </Text>
           <Text style={styles.emptySub}>
-            {tab === 'matches' ? 'Keep swiping to find your match!' : 'Like someone to get started!'}
+            {tab === 'matches' ? 'Keep liking to find your match!' : 'Like someone to get started!'}
           </Text>
-          <TouchableOpacity style={styles.swipeBtn} onPress={() => navigation.navigate('Discover')}>
-            <Text style={styles.swipeBtnText}>Start swiping</Text>
+          <TouchableOpacity style={styles.swipeBtn} onPress={() => navigation.navigate('Feed')}>
+            <Text style={styles.swipeBtnText}>Explore feed</Text>
           </TouchableOpacity>
         </View>
       ) : (
